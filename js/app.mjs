@@ -421,7 +421,7 @@ function renderLead() {
   $('#lead-google').href = 'https://www.google.com/search?q=' + encodeURIComponent(`${l.name} ${city}`);
   $('#author').value = store.getAuthor();
   const left = store.demosLeft();
-  $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : `${left} maquette${left > 1 ? 's' : ''} gratuite${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`;
+  $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : (store.planLevel() === 0 ? (left ? '1 maquette offerte avec la formule Découverte.' : 'Maquette offerte déjà utilisée.') : `${left} maquette${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`);
 }
 
 /** street-level photo (Panoramax, open licence), fetched when the card opens */
@@ -484,7 +484,7 @@ function demoReady(frame) {
 $('#btn-build').addEventListener('click', async () => {
   const l = state.lead;
   store.setAuthor($('#author').value);
-  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(`Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
+  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(store.planLevel() === 0 ? 'Tu as utilisé ta maquette offerte.' : `Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
   store.countBuild(l.id);
   track('demo_generated', { trade: l.trade });
   const t0 = performance.now();

@@ -47,13 +47,13 @@ export const PLANS = [
 
 export const FREE = {
   id: 'free', level: 0, name: 'Découverte',
-  perks: ['Scans de villes illimités', 'La carte de ta ville à partager', '5 commerces débloqués par ville', '3 maquettes par jour', 'Script « en boutique »'],
+  perks: ['Scans de villes illimités', 'La carte de ta ville à partager', '3 commerces débloqués par ville', '1 maquette de site offerte', 'Script « en boutique »'],
 };
 
 /** Quotas by plan level [free, Essentiel, Pro, Illimité]. */
 export const LIMITS = {
-  leadsPerCity: [5, 20, 100, Infinity],   // shops a user can open per city scan (the map still shows them all)
-  demosPerDay:  [3, 10, Infinity, Infinity],
+  leadsPerCity: [3, 20, 100, Infinity],   // shops a user can open per city scan (the map still shows them all)
+  demosPerDay:  [1, 10, Infinity, Infinity],   // free: 1 in total (never resets), paid: per day
   styles:       [2, 3, 6, 6],             // looks reachable with "Autre style"
 };
 export const limitFor = (kind, level) => LIMITS[kind][Math.max(0, Math.min(3, level))];

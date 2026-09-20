@@ -41,6 +41,7 @@ export const setAuthor = (v) => write('author', String(v || '').trim().slice(0, 
 /** Demo quota: re-opening a shop you already built today is free. */
 export function demoQuota() {
   const q = read('quota', { day: today(), ids: [] });
+  if (planLevel() === 0) return q; // the free mock-up is a one-off: no daily reset
   return q.day === today() ? q : { day: today(), ids: [] };
 }
 export const demoLimit = () => limitFor('demosPerDay', planLevel());
