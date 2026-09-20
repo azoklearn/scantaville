@@ -4,6 +4,7 @@
 // Production replaces (2) with a weekly pre-compute of every commune from a Geofabrik extract.
 import { buildOverpassQuery, elementsToLeads, summarize } from './core/leads.mjs';
 import { cacheCity, cachedCity } from './store.mjs';
+import * as supa from './supa.mjs';
 
 const GEO = 'https://geo.api.gouv.fr';
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -52,6 +53,16 @@ function bboxOf(leads, center) {
 
 /** @returns city object in the data/cities/*.json shape, plus { live: boolean } */
 export async function loadCity(city, { onStatus } = {}) {
+  // Accounts on: the shops come from the database, which already hides what the plan has not unlocked.
+  if (supa.enabled) {
+    const leads = await supa.cityLeads(city.insee);
+    if (leads) {
+      const gold = leads.filter((l) => l.tier === 'gold').length, social = leads.filter((l) => l.tier === 'social').length;
+      return { v: 1, insee: city.insee, name: city.name, slug: city.slug, dept: city.dept, population: city.population, center: city.center,
+        source: '© OpenStreetMap contributors (ODbL)', live: false, serverLocks: true,
+        stats: { leads: gold + social, gold, social, silver: 0, byTrade: {} }, leads };
+    }
+  }
   try {
     const r = await fetch(`data/cities/${city.insee}.json`);
     if (r.ok) { const data = await r.json(); return { ...data, live: false }; }

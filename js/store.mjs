@@ -1,5 +1,6 @@
 // Everything the MVP remembers lives in localStorage (no account, no backend).
 import { FEATURES, planById, limitFor } from './plans.mjs';
+import { enabled as serverAuth } from './supa.mjs';
 
 const K = 'scantaville.';
 const read = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
@@ -19,7 +20,16 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 // The plan lives in localStorage for the prototype. In production it comes from the payment provider
 // (Whop / Stripe webhook -> signed session): never trust the browser for this.
-export const getPlanId = () => { const id = read('plan', 'free'); return planById(id) ? id : 'free'; };
+let serverPlan = null;
+export const setServerPlan = (id) => { serverPlan = planById(id) ? id : null; };
+const isLocalDev = () => typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+export const getPlanId = () => {
+  // with accounts on, the plan comes from the `profiles` table; the browser copy only counts on localhost (?plan=...)
+  if (serverAuth && !isLocalDev()) return serverPlan || 'free';
+  const local = read('plan', 'free');
+  if (serverAuth && serverPlan && !planById(local)) return serverPlan;
+  return planById(local) ? local : serverPlan || 'free';
+};
 export const setPlanId = (id) => write('plan', planById(id) ? id : 'free');
 export const planLevel = () => planById(getPlanId())?.level || 0;
 export const can = (feature) => planLevel() >= (FEATURES[feature] || 1);
@@ -39,6 +49,8 @@ export function countBuild(id) { const q = demoQuota(); if (!q.ids.includes(id))
 export function demosLeft() { const max = demoLimit(); return max === Infinity ? Infinity : Math.max(0, max - demoQuota().ids.length); }
 
 export const getPipeline = () => read('pipeline', {});
+/** server copy wins on the statuses it knows; local-only entries are kept */
+export function mergePipeline(remote) { if (!remote) return; write('pipeline', { ...getPipeline(), ...remote }); }
 export function setStatus(lead, city, status) {
   const p = getPipeline();
   if (!status) delete p[lead.id]; else p[lead.id] = { status, name: lead.name, city, ts: Date.now() };

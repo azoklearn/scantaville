@@ -7,6 +7,7 @@ import * as sound from './sound.mjs';
 import * as store from './store.mjs';
 import { BRAND, applyBrand } from './brand.mjs';
 import { initDocs, openDocs } from './docs-ui.mjs';
+import * as supa from './supa.mjs';
 import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
 
 applyBrand();
@@ -234,10 +235,25 @@ function landed() {
   }
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
+  if (updateGate()) setTimeout(askAccount, 900); // let the number land, then ask
+}
+
+/** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
+function askAccount() {
+  const { data } = state;
+  state.gateTitle = data ? `${fr(data.stats.leads)} commerces sans site à ${data.name}. Crée ton compte pour les voir.` : '';
+  if (state.gateTitle) $('#auth-title').textContent = state.gateTitle;
+  openOverlay('#auth');
+}
+function updateGate() {
+  const on = supa.enabled && !state.user && document.body.dataset.state === 'scan';
+  document.body.dataset.gate = on ? 'on' : 'off';
+  $('#gate-btn').hidden = !on;
+  return on;
 }
 
 function backToLanding() {
-  document.body.dataset.state = 'landing';
+  document.body.dataset.state = 'landing'; updateGate();
   fog.reset(); state.data = null; state.lead = null;
   map.getSource('contour')?.setData({ type: 'FeatureCollection', features: [] });
   map.flyTo({ center: FRANCE.center, zoom: FRANCE.zoom(), duration: 1400 });
@@ -262,6 +278,7 @@ function applyFilter() { fog.setFilter(visible); }
  * contact details of locked shops from an authenticated endpoint.
  */
 function applyLocks() {
+  if (state.data.serverLocks) { state.unlocked = state.data.leads.filter((l) => !l._locked).length; return; } // the database already decided
   const leads = state.data.leads.filter((l) => l.tier !== 'silver'), max = limitFor('leadsPerCity', store.planLevel());
   const open = new Set();
   if (max >= leads.length) leads.forEach((l) => open.add(l.id));
@@ -363,6 +380,7 @@ function lockedPaywall() {
 }
 
 function openLead(lead, fly = false) {
+  if (updateGate()) return askAccount();
   if (lead._locked) return lockedPaywall();
   state.lead = lead; fog.setSelected(lead.id); sound.flip();
   if (!isDesktop()) $('#panel').dataset.open = 'false';
@@ -420,6 +438,7 @@ $('#phone-reveal').addEventListener('click', () => { state.lead._phoneShown = tr
 $('#author').addEventListener('change', (e) => store.setAuthor(e.target.value));
 $('#fb-hassite').addEventListener('click', () => {
   const l = state.lead; store.hideLead(l.id); l._hidden = true;
+  supa.reportHasSite(l.id, state.data.insee);
   closeOverlays(); fog.setSelected(null); applyFilter(); renderTierCounts(); renderFilters(); renderList();
   toast('Merci, retiré de ta carte. En production, ce signalement nettoie la carte de tout le monde.');
 });
@@ -509,6 +528,7 @@ function renderStatus() {
     onclick: () => {
       if (!store.can('fullPipeline') && s.key !== 'todo' && s.key !== 'contacted') return openPaywall('Le suivi complet (RDV, signé) commence à la formule Essentiel.', { feature: 'fullPipeline' });
       store.setStatus(state.lead, state.data.name, cur === s.key ? null : s.key); renderStatus(); renderList(); renderGoal();
+      supa.pushStatus(state.lead, state.data.name, state.data.insee, cur === s.key ? null : s.key);
       if (s.key === 'won' && cur !== 'won') { $('.demo-side').dataset.expanded = 'true'; $('.after-yes').classList.add('hot'); toast('Signé, bravo. Il reste le devis, puis le vrai site à construire.'); }
     },
   })));
@@ -634,7 +654,9 @@ $('#waitlist').addEventListener('submit', (e) => {
   e.preventDefault();
   const chosen = planById(pay.plan);
   if (chosen.checkoutUrl) { location.href = chosen.checkoutUrl; return; }
-  store.saveWaitlist(e.target.querySelector('input').value, chosen.id);
+  const email = e.target.querySelector('input').value;
+  store.saveWaitlist(email, chosen.id);
+  supa.joinWaitlist(email, chosen.id); // no-op until Supabase is configured
   closeOverlays(); toast(`C'est noté pour la formule ${chosen.name}. On te prévient à l'ouverture.`);
 });
 
@@ -691,6 +713,52 @@ let toastT = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3600); }
 
 // dev switch for demos: ?pro=1 / ?pro=0
+// ───────────────────────── Account (Supabase). Everything below is inert while js/config.mjs is empty. ─────────────────────────
+if (supa.enabled) {
+  const btn = $('#btn-account');
+  btn.hidden = false;
+  btn.addEventListener('click', () => openOverlay('#auth'));
+  const form = $('#auth-form');
+  const setMode = (mode) => {
+    form.dataset.mode = mode;
+    const up = mode === 'signup';
+    if (!state.gateTitle) $('#auth-title').textContent = up ? 'Crée ton compte' : 'Connexion';
+    $('#auth-sub').textContent = up ? 'Gratuit, en dix secondes. Pas d\'e-mail à confirmer.' : 'Content de te revoir.';
+    $('#auth-go').textContent = up ? 'Créer mon compte' : 'Me connecter';
+    $('#auth-switch').textContent = up ? 'J\'ai déjà un compte' : 'Créer un compte';
+    form.elements.password.autocomplete = up ? 'new-password' : 'current-password';
+  };
+  $('#auth-switch').addEventListener('click', () => setMode(form.dataset.mode === 'signup' ? 'login' : 'signup'));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const go = $('#auth-go'); go.disabled = true;
+    const fn = form.dataset.mode === 'signup' ? supa.signUp : supa.signIn;
+    const { error } = await fn(form.elements.email.value.trim(), form.elements.password.value);
+    go.disabled = false;
+    if (error) return toast(error);
+    form.elements.password.value = '';
+    closeOverlays(); toast(form.dataset.mode === 'signup' ? 'Compte créé. Voici tes commerces.' : 'Connecté.');
+  });
+  $('#gate-btn').addEventListener('click', () => askAccount());
+  $('#auth-out').addEventListener('click', async () => { await supa.signOut(); closeOverlays(); toast('Déconnecté.'); });
+
+  let lastPlan;
+  supa.onAuth(async ({ user, plan }) => {
+    state.user = user; state.gateTitle = ''; updateGate();
+    store.setServerPlan(user ? plan : null);
+    btn.textContent = user ? (user.email || 'Mon compte') : 'Connexion';
+    $('#auth-form').hidden = !!user; $('#auth-sub').hidden = !!user; $('#auth-me').hidden = !user;
+    if (user) { $('#auth-email').textContent = user.email || ''; $('#auth-plan').textContent = planById(store.getPlanId())?.name || 'Découverte'; store.mergePipeline(await supa.pullPipeline()); }
+    renderPlans(); refreshLocks();
+    // the unlocked shops depend on the plan: reload the city when it changes under our feet
+    if (lastPlan !== undefined && lastPlan !== store.getPlanId() && state.data && document.body.dataset.state === 'scan') {
+      const fresh = await loadCity(state.city, {}).catch(() => null);
+      if (fresh) { const hidden = new Set(store.getHidden()); for (const l of fresh.leads) l._hidden = hidden.has(l.id); state.data = fresh; fog.setCity(fresh.center, fresh.leads); fog.startReveal({ duration: 900, onCount: (n) => { $('#hud-num').textContent = fr(n); } }); applyLocks(); applyFilter(); renderTierCounts(); renderFilters(); renderList(); }
+    } else if (state.data) renderList();
+    lastPlan = store.getPlanId();
+  });
+}
+
 // try a plan without paying (prototype only): ?plan=free | m1 | m3 | y1   (?pro=1 still means Essentiel)
 const qs = new URLSearchParams(location.search);
 if (qs.get('plan')) store.setPlanId(qs.get('plan'));

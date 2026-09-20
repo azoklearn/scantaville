@@ -374,6 +374,15 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .kit-list a { margin-left: 30px; }
 .paycard h2 { font: 800 28px/1.05 var(--display); font-stretch: 104%; letter-spacing: -.04em; margin: 14px 30px 12px 0; color: var(--ink); }
 .paycard .muted { color: var(--ink-2); }
+#auth-form { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 10px; }
+#auth-form input { height: 50px; padding: 0 14px; border-radius: 13px; background: var(--bg-2); border: 1.5px solid var(--line); outline: 0; font-size: 16px; color: var(--ink); }
+#auth-form input:focus { border-color: var(--blue); background: #fff; }
+#auth-switch { justify-self: center; margin-top: 4px; }
+/* results are behind the account: the reveal plays, then the list and tools wait for sign-up */
+body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !important; }
+.gate-btn { position: fixed; z-index: 24; left: 50%; bottom: calc(28px + var(--safe-b)); transform: translateX(-50%); white-space: nowrap; }
+#auth-me { display: grid; gap: 8px; margin: 16px 0 10px; }
+#btn-account { min-height: 38px; padding: 0 12px; font-size: 13px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #waitlist { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 10px; }
 #waitlist input { height: 50px; padding: 0 14px; border-radius: 13px; background: var(--bg-2); border: 1.5px solid var(--line); outline: 0; font-size: 16px; color: var(--ink); }
 #waitlist input:focus { border-color: var(--blue); background: #fff; }

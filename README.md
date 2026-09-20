@@ -27,6 +27,7 @@ Puis http://localhost:5180 · lien direct vers une ville : `/?v=37261` (code INS
 | `index.html`, `css/app.css`, `js/app.mjs` | L'app : recherche de ville, scan, liste, fiche, maquette, scripts, carte à partager, paywall simulé |
 | `doc.html`, `css/doc.css`, `js/doc/*`, `js/docs-ui.mjs` | **Devis et factures** : formulaire dans l'app, feuille A4 imprimable en PDF, mentions obligatoires (EI, SIRET, art. 293 B, pénalités, 40 €, escompte), numérotation continue par série |
 | `js/plans.mjs` | **Les 3 formules** (prix, durée, avantages, lien de paiement) et la table « fonction → formule minimale » |
+| `js/config.mjs`, `js/supa.mjs`, `supabase/schema.sql`, `scripts/push-to-supabase.mjs` | **Supabase** : configuration publique, couche d'accès (inerte si non configurée), schéma + règles de sécurité, import des villes |
 | `js/brand.mjs` | **Le nom du produit, à un seul endroit** (logo, titre, carte à partager, domaine) + l'upsell partenaire Movento (`UPSELL`, liens suivis par `utm_campaign`) |
 | `js/fog.mjs` | Brume + pins (2 canvas au-dessus de MapLibre) |
 | `js/card.mjs` | Carte 9:16 (constellation de la ville) en PNG, côté client |
@@ -53,6 +54,25 @@ Design : bleu `#1d5bff` + blanc, encre marine `#0b1b3f`, polices Archivo / Schib
 node scripts/build-cities.mjs            # toutes les villes de la liste
 node scripts/build-cities.mjs 37261      # une seule (réponses Overpass en cache dans scripts/.cache)
 ```
+
+## Supabase (comptes, formule, verrouillage réel)
+
+Inactif tant que `js/config.mjs` est vide : l'app tourne alors comme avant (formule lue dans le navigateur).
+
+1. Crée un projet sur supabase.com, puis colle `supabase/schema.sql` dans **SQL Editor** et exécute-le.
+2. **Project settings → API** : copie `Project URL` et la clé `anon public` dans `js/config.mjs` (ces deux valeurs sont publiques par nature).
+3. **Authentication → URL configuration** : mets l'adresse du site en *Site URL* et ajoute `http://localhost:5180` aux *Redirect URLs*.
+4. Envoie les commerces dans la base (la clé `service_role` reste dans ton terminal, jamais dans le dépôt ni dans le navigateur) :
+
+```bash
+SUPABASE_URL=https://xxxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... node scripts/push-to-supabase.mjs
+```
+
+Ce que ça change : connexion par lien e-mail, formule lue dans la table `profiles` (modifiable uniquement côté serveur), commerces servis par la fonction `city_leads()` qui masque les fiches non débloquées, suivi des prospects synchronisé, signalements « il a déjà un site » et liste d'attente enregistrés.
+
+**Paiement** : ton webhook (Whop, Stripe) appelle `select set_plan('client@mail.fr', 'm3', now() + interval '3 months')` avec la clé `service_role`. Le client doit créer son compte avec le même e-mail que celui du paiement.
+
+**À faire ensuite pour que le verrou soit étanche** : ne plus publier `data/cities/*.json` (les remplacer par des fichiers sans nom ni contact, ou passer le dépôt en privé), puisque la base sert désormais les fiches.
 
 ## Coût de fonctionnement
 

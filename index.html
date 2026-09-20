@@ -33,6 +33,7 @@
       <a href="#comment" class="only-landing">Comment ça marche</a>
       <a href="#tarifs" class="only-landing">Tarifs</a>
       <button id="btn-newcity" class="ghost only-scan" type="button">Autre ville</button>
+      <button id="btn-account" class="ghost" type="button" hidden>Connexion</button>
       <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" title="Son">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
       </button>
@@ -84,6 +85,8 @@
   </section>
 
   <p id="map-attrib" class="only-scan">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a></p>
+
+  <button id="gate-btn" class="cta gate-btn" type="button" hidden>Créer mon compte pour voir les commerces</button>
 
   <div id="scanmsg" class="scanmsg" hidden><span class="spin"></span><span id="scanmsg-text">Lecture d'OpenStreetMap…</span></div>
 
@@ -266,6 +269,29 @@
         <button id="pay-go" class="cta" type="submit">Continuer</button>
       </form>
       <p id="pay-fine" class="fine">Prototype : le paiement n'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l'ouverture.</p>
+    </article>
+  </div>
+
+  <!-- ───────── Account (only when Supabase is configured) ───────── -->
+  <div id="auth" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <p class="kicker"><i class="dot"></i> Ton compte</p>
+      <h2 id="auth-title">Crée ton compte</h2>
+      <p id="auth-sub" class="muted">Gratuit, en dix secondes. Pas d'e-mail à confirmer.</p>
+      <form id="auth-form" data-mode="signup">
+        <input name="email" type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail" autocomplete="email">
+        <input name="password" type="password" required minlength="6" placeholder="Mot de passe (6 caractères min.)" aria-label="Mot de passe" autocomplete="new-password">
+        <button id="auth-go" class="cta" type="submit">Créer mon compte</button>
+        <button id="auth-switch" class="link" type="button">J'ai déjà un compte</button>
+      </form>
+      <div id="auth-me" hidden>
+        <p class="muted">Connecté avec <b id="auth-email"></b></p>
+        <p class="muted">Formule : <b id="auth-plan" class="accent"></b></p>
+        <button id="auth-out" class="ghost" type="button">Se déconnecter</button>
+      </div>
+      <p class="fine">Ton suivi de prospects est sauvegardé sur ton compte et te suit d'un appareil à l'autre.</p>
     </article>
   </div>
 
