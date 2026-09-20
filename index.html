@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ScanTaVille · Les commerces sans site web de ta ville</title>
+  <meta name="description" content="Tape ta ville : la brume se lève et chaque commerce sans site web apparaît sur la carte. Clique, son site est déjà fait. Il ne reste qu'à le vendre.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231d5bff'/%3E%3Cpath d='M32 12c-8.8 0-16 7-16 15.8C16 39.6 32 54 32 54s16-14.4 16-26.2C48 19 40.8 12 32 12z' fill='%23fff'/%3E%3Ccircle cx='32' cy='27.5' r='6' fill='%231d5bff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Martian+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link href="css/app.css" rel="stylesheet">
+</head>
+<body data-state="landing" data-rec="on">
+
+  <!-- ───────── Stage: map + mist + pins (fixed, behind everything) ───────── -->
+  <div id="stage" aria-hidden="true">
+    <div id="map"></div>
+    <canvas id="fog"></canvas>
+    <canvas id="pins"></canvas>
+    <div class="veil"></div>
+  </div>
+
+  <!-- ───────── Top bar ───────── -->
+  <header class="top">
+    <a class="brand" href="./" aria-label="Accueil">
+      <svg viewBox="0 0 24 30" width="17" height="21" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 30 12 30s12-9.4 12-18.1C24 5.3 18.6 0 12 0z" fill="currentColor"/><circle cx="12" cy="11.5" r="4.4" fill="#fff"/></svg>
+      <span class="mark" data-brand-mark>scan<b>ta</b>ville</span>
+    </a>
+    <nav class="top-nav">
+      <a href="#comment" class="only-landing">Comment ça marche</a>
+      <a href="#tarifs" class="only-landing">Tarifs</a>
+      <button id="btn-newcity" class="ghost only-scan" type="button">Autre ville</button>
+      <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" title="Son">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+      </button>
+      <button id="btn-rec" class="rec-toggle" type="button" aria-pressed="true" title="Masque les numéros de téléphone pour filmer ton écran sans exposer de données personnelles">
+        <i></i><span>Mode tournage</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- ───────── Landing hero ───────── -->
+  <main id="hero" class="only-landing">
+    <p class="kicker"><i class="dot"></i> Scan gratuit · sans inscription</p>
+    <h1>
+      <span class="l1">Ta ville est pleine</span>
+      <span class="l2">de commerces</span>
+      <span class="l3"><em>sans site web.</em></span>
+    </h1>
+    <p class="lede">Scanne ta ville. Chaque point bleu est un commerce à qui tu peux vendre son site, et la maquette se génère en une seconde. <strong>1&nbsp;oui&nbsp;=&nbsp;490&nbsp;€.</strong></p>
+
+    <form id="search" autocomplete="off" role="search">
+      <div class="field">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="city" type="text" inputmode="search" placeholder="Tape ta ville…" aria-label="Ta ville" aria-autocomplete="list" aria-controls="suggest" spellcheck="false">
+        <button id="go" type="submit"><span>Scanner ma ville</span></button>
+      </div>
+      <ul id="suggest" role="listbox" hidden></ul>
+    </form>
+
+    <div id="quick" class="quick" aria-label="Villes déjà scannées"></div>
+
+    <ul class="proof">
+      <li><b id="p-cities">—</b><span>villes pré-scannées</span></li>
+      <li><b id="p-leads">—</b><span>commerces sans site repérés</span></li>
+      <li><b>0&nbsp;€</b><span>pour scanner ta ville</span></li>
+    </ul>
+    <a class="scroll-cue" href="#comment" aria-label="Voir comment ça marche">↓</a>
+  </main>
+
+  <!-- ───────── Scan HUD ───────── -->
+  <section id="hud" class="only-scan" aria-live="polite">
+    <p class="hud-city"><span id="hud-cityname">—</span><small id="hud-live" hidden>scan en direct</small></p>
+    <p class="hud-count"><span id="hud-num">0</span></p>
+    <p class="hud-label">commerces <em>sans site web référencé</em></p>
+    <div class="hud-tiers">
+      <button type="button" class="tier t-gold" data-tier="gold" aria-pressed="true"><i></i><b id="hud-gold">0</b><span>aucun site<span class="long"> détecté</span></span></button>
+      <button type="button" class="tier t-social" data-tier="social" aria-pressed="true"><i></i><b id="hud-social">0</b><span>Insta / Facebook<span class="long"> seulement</span></span></button>
+    </div>
+    <p id="hud-rank" class="hud-rank" hidden></p>
+  </section>
+
+  <p id="map-attrib" class="only-scan">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a></p>
+
+  <div id="scanmsg" class="scanmsg" hidden><span class="spin"></span><span id="scanmsg-text">Lecture d'OpenStreetMap…</span></div>
+
+  <!-- ───────── Lead list panel ───────── -->
+  <aside id="panel" class="only-scan" data-open="false" aria-label="Liste des commerces">
+    <button id="panel-handle" class="panel-handle" type="button" aria-expanded="false">
+      <i></i>
+      <span id="panel-title">Tes prospects</span>
+      <small id="panel-sub"></small>
+    </button>
+    <div id="filters" class="chips" role="toolbar" aria-label="Filtrer par métier"></div>
+    <ol id="list" class="list"></ol>
+    <p class="attrib">Données © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a> (ODbL). Chaque commerce est « à vérifier » avant contact.</p>
+  </aside>
+
+  <!-- ───────── Dock: objective + share ───────── -->
+  <div id="dock" class="only-scan">
+    <div class="goal">
+      <p class="goal-head"><b>1 oui = <span class="accent">490 €</span></b><small>prix conseillé d'un site vitrine</small></p>
+      <label for="goal-range">Je contacte <b id="goal-n">15</b> commerces / semaine</label>
+      <input id="goal-range" type="range" min="5" max="50" step="5" value="15">
+      <p class="goal-out">Premier client en <b id="goal-weeks">~4 semaines</b><sup>*</sup></p>
+      <p class="fine">* Hypothèse illustrative : 1 vente pour ~50 contacts. Pas une promesse : ça dépend de toi.</p>
+      <p id="goal-won" class="goal-won" hidden></p>
+    </div>
+    <button id="btn-share" class="btn-share" type="button">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18h4"/></svg>
+      La carte de ma ville
+    </button>
+  </div>
+
+  <!-- ───────── Below the fold (landing only) ───────── -->
+  <div id="below" class="only-landing">
+    <section id="comment" class="how">
+      <p class="eyebrow">Comment ça marche</p>
+      <h2>Trois gestes. Pas de code, pas d'abonnement à dix outils.</h2>
+      <ol class="steps">
+        <li>
+          <span class="n">01</span>
+          <h3>Scanne ta ville</h3>
+          <p>La brume se lève et la carte révèle les commerces indépendants qui n'ont aucun site à eux, ou seulement une page Insta / Facebook. Chaînes, franchises et professions de santé sont déjà retirées.</p>
+        </li>
+        <li>
+          <span class="n">02</span>
+          <h3>Clique, son site existe</h3>
+          <p>Nom, adresse, horaires, téléphone, plan : une vraie maquette de site pour ce commerce-là s'assemble en une seconde, à partir de données ouvertes.</p>
+        </li>
+        <li>
+          <span class="n">03</span>
+          <h3>Montre-le au patron</h3>
+          <p>Passe en boutique, téléphone en main, ou envoie le lien en DM. « Je vous ai déjà fait votre site, regardez. » Le script est fourni, les réponses aux objections aussi.</p>
+        </li>
+      </ol>
+      <aside class="honest">
+        <h3>Ce qu'on ne te dira pas ailleurs</h3>
+        <p>Ce n'est pas magique. Il faut contacter des dizaines de commerces pour obtenir un oui, certains points auront déjà un site qu'on n'a pas détecté (d'où le bouton « vérifier »), et il te faut un statut de micro-entrepreneur pour facturer. La carte, elle, est gratuite. Le reste, c'est toi.</p>
+      </aside>
+    </section>
+
+    <section id="tarifs" class="pricing">
+      <p class="eyebrow">Tarifs</p>
+      <h2>La carte est gratuite. Tu paies la boîte à outils.</h2>
+      <div class="plans">
+        <article class="plan">
+          <h3>Découverte</h3>
+          <p class="price">0 €</p>
+          <ul>
+            <li>Scans de villes illimités</li>
+            <li>Tous les points, tous les filtres</li>
+            <li>La carte de ta ville à partager</li>
+            <li>3 maquettes de site par jour</li>
+            <li>Script « en boutique »</li>
+          </ul>
+        </article>
+        <article class="plan pro">
+          <p class="tag">Un site vendu = 2 ans et demi d'abonnement</p>
+          <h3>Pro</h3>
+          <p class="price">14,90 €<small>/mois · sans engagement</small></p>
+          <ul>
+            <li>Maquettes illimitées, sans filigrane</li>
+            <li>Scripts DM, e-mail, appel + objections</li>
+            <li>Export du site prêt à héberger (ZIP)</li>
+            <li>Suivi : contacté, RDV, signé</li>
+            <li>Kit légal : statut, facture, mentions</li>
+          </ul>
+          <button class="cta" type="button" data-open-paywall>Rejoindre la liste d'attente</button>
+        </article>
+      </div>
+      <p class="fine center">Pas de compte à rebours bidon, pas de fausse notification de paiement. Remboursé sous 7 jours, sans condition.</p>
+    </section>
+
+    <footer class="foot">
+      <p><b data-brand>ScanTaVille</b> · prototype. Données © contributeurs OpenStreetMap (ODbL), geo.api.gouv.fr, Base Adresse Nationale.</p>
+      <p>Commerçant ? <a data-brand-optout href="mailto:retrait@scantaville.fr">Faire retirer votre fiche</a> · Aucun revenu n'est garanti : c'est un outil de prospection, pas un placement.</p>
+    </footer>
+  </div>
+
+  <!-- ───────── Lead card ───────── -->
+  <div id="lead" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <article class="leadcard" role="dialog" aria-modal="true" aria-labelledby="lead-name">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <header>
+        <span id="lead-tier" class="badge"></span>
+        <h2 id="lead-name"></h2>
+        <p id="lead-trade" class="muted"></p>
+      </header>
+      <dl class="facts">
+        <div id="row-addr"><dt>Adresse</dt><dd id="lead-addr"></dd></div>
+        <div id="row-hours"><dt>Horaires</dt><dd id="lead-hours"></dd></div>
+        <div id="row-phone"><dt>Téléphone</dt><dd><span id="lead-phone"></span> <button id="phone-reveal" class="link" type="button">afficher</button></dd></div>
+        <div id="row-social"><dt>Réseaux</dt><dd id="lead-social"></dd></div>
+        <div id="row-domain"><dt>Domaine</dt><dd id="lead-domain"></dd></div>
+      </dl>
+      <div class="verify">
+        <a id="lead-google" class="link" target="_blank" rel="noopener">Vérifier sur Google ↗</a>
+        <span class="sep">·</span>
+        <button id="fb-hassite" class="link" type="button">Il a déjà un site</button>
+      </div>
+      <label class="author">Ton prénom <small>(affiché sur la maquette)</small>
+        <input id="author" type="text" maxlength="24" placeholder="Noan">
+      </label>
+      <p class="pricehint">Prix conseillé&nbsp;: <b>490&nbsp;€</b> le site, puis 29&nbsp;€/mois de maintenance.</p>
+      <button id="btn-build" class="cta big" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        Générer son site
+      </button>
+      <p id="quota" class="fine center"></p>
+    </article>
+  </div>
+
+  <!-- ───────── Demo overlay (phone frame) ───────── -->
+  <div id="demo" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <div class="demo-wrap">
+      <div class="phone">
+        <div id="build" class="build">
+          <p class="build-title">Construction du site…</p>
+          <ul id="build-steps"></ul>
+        </div>
+        <iframe id="demo-frame" title="Maquette du site" referrerpolicy="no-referrer"></iframe>
+      </div>
+      <div class="demo-side" data-expanded="false">
+        <button class="x" type="button" data-close aria-label="Fermer">×</button>
+        <p class="kicker"><i class="dot"></i> Maquette prête en <b id="demo-ms">—</b></p>
+        <h2 id="demo-name"></h2>
+        <div class="demo-actions">
+          <button id="demo-copy" class="cta" type="button">Copier le lien</button>
+          <a id="demo-open" class="ghost" target="_blank" rel="noopener">Plein écran ↗</a>
+        </div>
+        <button id="demo-more" class="ghost small demo-more" type="button" aria-expanded="false">Script de vente et suivi</button>
+        <div class="status">
+          <span>Suivi</span>
+          <div id="status-chips" class="chips"></div>
+        </div>
+        <div class="scripts">
+          <div id="script-tabs" class="tabs" role="tablist"></div>
+          <pre id="script-body" class="script"></pre>
+          <button id="script-copy" class="ghost small" type="button">Copier le script</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── Share card overlay ───────── -->
+  <div id="share" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <div class="share-wrap">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <canvas id="share-canvas" width="1080" height="1920"></canvas>
+      <div class="share-actions">
+        <button id="share-dl" class="cta" type="button">Télécharger (9:16)</button>
+        <button id="share-native" class="ghost" type="button" hidden>Partager…</button>
+      </div>
+      <p class="fine center">Poste-la, et dis à tes abonnés de commenter leur ville.</p>
+    </div>
+  </div>
+
+  <!-- ───────── Paywall ───────── -->
+  <div id="paywall" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <p class="kicker"><i class="dot"></i> Offre Pro</p>
+      <h2 id="pay-title">Tu as utilisé tes 3 maquettes du jour.</h2>
+      <p class="muted">La carte reste gratuite et illimitée. La boîte à outils complète (maquettes illimitées sans filigrane, tous les scripts, export du site, suivi, kit légal), c'est <b class="accent">14,90 €/mois</b>, sans engagement. Un seul site vendu la rembourse pour plus de deux ans.</p>
+      <form id="waitlist">
+        <input type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail">
+        <button class="cta" type="submit">Prévenez-moi à l'ouverture</button>
+      </form>
+      <p class="fine">Prototype : le paiement n'est pas encore branché. Ton e-mail reste sur cet appareil.</p>
+    </article>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="js/app.mjs"></script>
+</body>
+</html>

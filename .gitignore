@@ -1,0 +1,6 @@
+# raw Overpass responses, DNS and reverse-geocoding caches (rebuilt by scripts/build-cities.mjs)
+scripts/.cache/
+# local tooling
+.claude/
+.DS_Store
+node_modules/

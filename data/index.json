@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-09-19",
+  "cities": [
+    {"insee":"17300","name":"La Rochelle","slug":"la-rochelle","dept":"17","population":79851,"center":[-1.1765,46.162],"leads":107,"gold":96,"social":11,"per10k":13.4,"rank":1},
+    {"insee":"37261","name":"Tours","slug":"tours","dept":"37","population":139259,"center":[0.6949,47.3943],"leads":185,"gold":68,"social":117,"per10k":13.3,"rank":2},
+    {"insee":"44109","name":"Nantes","slug":"nantes","dept":"44","population":327734,"center":[-1.5603,47.2382],"leads":325,"gold":170,"social":155,"per10k":9.9,"rank":3},
+    {"insee":"38185","name":"Grenoble","slug":"grenoble","dept":"38","population":156140,"center":[5.7155,45.1842],"leads":154,"gold":114,"social":40,"per10k":9.9,"rank":4},
+    {"insee":"33063","name":"Bordeaux","slug":"bordeaux","dept":"33","population":267991,"center":[-0.5848,44.8624],"leads":261,"gold":195,"social":66,"per10k":9.7,"rank":5},
+    {"insee":"69123","name":"Lyon","slug":"lyon","dept":"69","population":519127,"center":[4.8351,45.758],"leads":428,"gold":267,"social":161,"per10k":8.2,"rank":6},
+    {"insee":"59350","name":"Lille","slug":"lille","dept":"59","population":238246,"center":[3.0468,50.6311],"leads":187,"gold":71,"social":116,"per10k":7.8,"rank":7},
+    {"insee":"67482","name":"Strasbourg","slug":"strasbourg","dept":"67","population":293771,"center":[7.7621,48.5691],"leads":219,"gold":168,"social":51,"per10k":7.5,"rank":8},
+    {"insee":"35238","name":"Rennes","slug":"rennes","dept":"35","population":230890,"center":[-1.6884,48.1159],"leads":171,"gold":106,"social":65,"per10k":7.4,"rank":9},
+    {"insee":"06088","name":"Nice","slug":"nice","dept":"06","population":357737,"center":[7.2528,43.7032],"leads":248,"gold":98,"social":150,"per10k":6.9,"rank":10},
+    {"insee":"21231","name":"Dijon","slug":"dijon","dept":"21","population":161830,"center":[5.0322,47.3319],"leads":97,"gold":73,"social":24,"per10k":6,"rank":11},
+    {"insee":"31555","name":"Toulouse","slug":"toulouse","dept":"31","population":514819,"center":[1.4328,43.6007],"leads":281,"gold":142,"social":139,"per10k":5.5,"rank":12},
+    {"insee":"34172","name":"Montpellier","slug":"montpellier","dept":"34","population":310240,"center":[3.8742,43.61],"leads":163,"gold":123,"social":40,"per10k":5.3,"rank":13},
+    {"insee":"74010","name":"Annecy","slug":"annecy","dept":"74","population":132117,"center":[6.1264,45.9024],"leads":62,"gold":37,"social":25,"per10k":4.7,"rank":14},
+    {"insee":"49007","name":"Angers","slug":"angers","dept":"49","population":159022,"center":[-0.5629,47.4819],"leads":67,"gold":49,"social":18,"per10k":4.2,"rank":15},
+    {"insee":"13055","name":"Marseille","slug":"marseille","dept":"13","population":886040,"center":[5.3806,43.2803],"leads":183,"gold":141,"social":42,"per10k":2.1,"rank":16}
+  ]
+}

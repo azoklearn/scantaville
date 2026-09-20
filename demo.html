@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+  ScanTaVille · instant demo site. The whole shop lives in the URL hash (see js/core/payload.mjs) = UNTRUSTED input.
+  Defence in depth: js/demo builds the DOM with textContent only, and this CSP forbids any script that is not ours.
+  If you edit the inline boot script below, refresh its hash:  node js/demo/csp-hash.mjs --write
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Yg0MvTDz2k5cfxfWwEXciBWN5E342TDJVWUqU+J/xfg=' https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src blob:; child-src blob:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="format-detection" content="telephone=no">
+<title>Maquette de site</title>
+<link rel="icon" href="data:,">
+<script>
+(function(){try{var F={salon:'coiffeur',table:'restaurant',fournil:'boulangerie',atelier:'garage'},t='',h=location.hash.slice(1);
+if(h.length>8){var b=h.replace(/-/g,'+').replace(/_/g,'/');t=JSON.parse(atob(b+'==='.slice((b.length+3)%4))).t}
+else{t=new URLSearchParams(location.search).get('sample')||'';t=F[t]||t}
+if(/^[a-z]{3,12}$/.test(t))document.documentElement.setAttribute('data-trade',t)}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/demo.css">
+<link rel="modulepreload" href="js/demo/main.mjs">
+<link rel="modulepreload" href="js/demo/templates.mjs">
+<link rel="modulepreload" href="js/demo/content.mjs">
+<link rel="modulepreload" href="js/demo/hours.mjs">
+<link rel="modulepreload" href="js/demo/safe.mjs">
+<link rel="modulepreload" href="js/demo/dom.mjs">
+<link rel="modulepreload" href="js/core/payload.mjs">
+<link rel="modulepreload" href="js/core/leads.mjs">
+<script type="module" src="js/demo/main.mjs"></script>
+</head>
+<body>
+<aside class="ribbon" role="note" aria-label="Avertissement"><span id="ribbon-text">Maquette non officielle · ce site n’est pas en ligne</span></aside>
+<div id="app" class="site"></div>
+<noscript><p class="noscript">Cette maquette a besoin de JavaScript pour s’afficher.</p></noscript>
+</body>
+</html>
