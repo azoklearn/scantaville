@@ -384,6 +384,11 @@
 
   <div id="toast" role="status" aria-live="polite"></div>
 
+  <!-- Vercel Web Analytics: cookieless, no personal data. Only on the deployed site (the script does not exist on localhost). -->
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { var s = document.createElement('script'); s.defer = true; s.src = '/_vercel/insights/script.js'; document.head.appendChild(s); }
+  </script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="js/app.mjs"></script>
 </body>

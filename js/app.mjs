@@ -13,6 +13,9 @@ import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabe
 
 applyBrand();
 
+/** Vercel Analytics custom event (no-op on localhost and if blocked). Never send names, e-mails or anything personal. */
+const track = (name, data) => { try { window.va?.('event', { name, data }); } catch { /* analytics must never break the app */ } };
+
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fr = (n) => Number(n).toLocaleString('fr-FR');
@@ -227,6 +230,7 @@ async function scan(city) {
 function landed() {
   const { rank } = state;
   document.body.dataset.state = 'scan';
+  track('scan', { city: state.data.name, shops: state.data.stats.leads });
   sound.landed();
   renderTierCounts();
   if (rank.rank) {
@@ -482,6 +486,7 @@ $('#btn-build').addEventListener('click', async () => {
   store.setAuthor($('#author').value);
   if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(`Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
   store.countBuild(l.id);
+  track('demo_generated', { trade: l.trade });
   const t0 = performance.now();
   state.demoUrl = demoUrlFor(l);
 
@@ -638,6 +643,7 @@ function openPaywall(title, { feature, minLevel, planId } = {}) {
   const wanted = planById(planId) || (pay.minLevel > 1 ? planForLevel(pay.minLevel) : null) || PLANS.find((p) => p.popular) || PLANS[0];
   pay.plan = wanted.level >= pay.minLevel ? wanted.id : planForLevel(pay.minLevel).id;
   $('#pay-title').textContent = title || 'Choisis ta formule';
+  track('paywall_open', { need: pay.minLevel });
   renderPaywall();
   openOverlay('#paywall');
 }
@@ -666,7 +672,7 @@ $$('[data-open-paywall]').forEach((b) => b.addEventListener('click', () => openP
 $('#waitlist').addEventListener('submit', (e) => {
   e.preventDefault();
   const chosen = planById(pay.plan);
-  if (chosen.checkoutUrl) { location.href = chosen.checkoutUrl; return; }
+  if (chosen.checkoutUrl) { track('checkout_click', { plan: chosen.id }); location.href = chosen.checkoutUrl; return; }
   const email = e.target.querySelector('input').value;
   store.saveWaitlist(email, chosen.id);
   supa.joinWaitlist(email, chosen.id); // no-op until Supabase is configured
@@ -750,6 +756,7 @@ if (supa.enabled) {
     go.disabled = false;
     if (error) return toast(error);
     form.elements.password.value = '';
+    track(form.dataset.mode === 'signup' ? 'signup' : 'login');
     closeOverlays(); toast(form.dataset.mode === 'signup' ? 'Compte créé. Voici tes commerces.' : 'Connecté.');
   });
   $('#gate-btn').addEventListener('click', () => askAccount());
