@@ -8,6 +8,7 @@ import * as store from './store.mjs';
 import { BRAND, applyBrand } from './brand.mjs';
 import { initDocs, openDocs } from './docs-ui.mjs';
 import * as supa from './supa.mjs';
+import { shopPhoto, paintPhoto } from './photos.mjs';
 import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
 
 applyBrand();
@@ -391,6 +392,7 @@ function openLead(lead, fly = false) {
   const card = $('.leadcard'); card.style.animation = 'none'; void card.offsetWidth; card.style.animation = '';
   openOverlay('#lead');
   enrichLead(lead);
+  showPhoto(lead);
 }
 
 function renderLead() {
@@ -416,6 +418,17 @@ function renderLead() {
   $('#author').value = store.getAuthor();
   const left = store.demosLeft();
   $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : `${left} maquette${left > 1 ? 's' : ''} gratuite${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`;
+}
+
+/** street-level photo (Panoramax, open licence), fetched when the card opens */
+async function showPhoto(l) {
+  const fig = $('#lead-photo'); fig.hidden = true;
+  const photo = await shopPhoto(l.lat, l.lon);
+  if (!photo || state.lead !== l || $('#lead').hidden) return;
+  fig.hidden = false;
+  paintPhoto($('#lead-photo-img'), photo);
+  const credit = $('#lead-photo-credit');
+  credit.href = photo.link; credit.textContent = `© ${photo.author} · Panoramax · ${photo.licence}${photo.date ? ' · ' + photo.date : ''}`;
 }
 
 /** live mode: domain check + reverse geocoding happen when the card opens */
