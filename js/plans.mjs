@@ -47,19 +47,19 @@ export const PLANS = [
 
 export const FREE = {
   id: 'free', level: 0, name: 'Découverte',
-  perks: ['Scans de villes illimités', 'La carte de ta ville à partager', '3 commerces débloqués par ville', '1 maquette de site offerte', 'Script « en boutique »'],
+  perks: ['Scanne n’importe quelle ville', 'Vois combien de commerces n’ont pas de site', 'La carte de ta ville à partager'],
 };
 
 /** Quotas by plan level [free, Essentiel, Pro, Illimité]. */
 export const LIMITS = {
-  leadsPerCity: [3, 20, 100, Infinity],   // shops a user can open per city scan (the map still shows them all)
-  demosPerDay:  [1, 10, Infinity, Infinity],   // free: 1 in total (never resets), paid: per day
+  leadsPerCity: [0, 20, 100, Infinity],   // shops a user can open per city scan (the map still shows them all)
+  demosPerDay:  [0, 10, Infinity, Infinity],   // nothing without a plan: the free scan only shows how many shops there are
   styles:       [2, 3, 6, 6],             // looks reachable with "Autre style"
 };
 export const limitFor = (kind, level) => LIMITS[kind][Math.max(0, Math.min(3, level))];
 
 /** sales-script channel -> lowest plan level */
-export const SCRIPT_LEVEL = { walkin: 0, dm: 1, email: 2, call: 2, objections: 2 };
+export const SCRIPT_LEVEL = { walkin: 1, dm: 1, email: 2, call: 2, objections: 2 };
 
 /** feature -> lowest plan level that unlocks it */
 export const FEATURES = {

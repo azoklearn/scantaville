@@ -81,7 +81,7 @@ returns table (id text, trade text, tier text, lat double precision, lon double 
                name text, addr text, phone text, hours text, email text, social jsonb, cuisine text, siret text, domain text)
 language sql stable security definer set search_path = public as $$
   with lim as (
-    select case public.plan_level(auth.uid()) when 0 then 3 when 1 then 20 when 2 then 100 else 2147483647 end as n
+    select case public.plan_level(auth.uid()) when 0 then 0 when 1 then 20 when 2 then 100 else 2147483647 end as n
   )
   select l.id, l.trade, l.tier, l.lat, l.lon,
          (l.tier = 'silver' or l.unlock_rank >= lim.n) as locked,

@@ -241,6 +241,7 @@ function landed() {
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
   if (updateGate()) setTimeout(askAccount, 900); // let the number land, then ask
+  else if (store.planLevel() === 0) setTimeout(lockedPaywall, 1100); // no plan = nothing to open: show the offer
 }
 
 /** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
@@ -381,7 +382,10 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverl
 function lockedPaywall() {
   const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;
   const max = limitFor('leadsPerCity', level);
-  openPaywall(`Tu as débloqué ${fr(Math.min(max, total))} commerces sur ${fr(total)} à ${state.data.name}.`, { minLevel: Math.min(3, level + 1) });
+  const title = level === 0
+    ? `${fr(total)} commerces sans site à ${state.data.name}. Choisis une formule pour voir lesquels.`
+    : `Tu as débloqué ${fr(Math.min(max, total))} commerces sur ${fr(total)} à ${state.data.name}.`;
+  openPaywall(title, { minLevel: Math.min(3, level + 1) });
 }
 
 function openLead(lead, fly = false) {
@@ -421,7 +425,7 @@ function renderLead() {
   $('#lead-google').href = 'https://www.google.com/search?q=' + encodeURIComponent(`${l.name} ${city}`);
   $('#author').value = store.getAuthor();
   const left = store.demosLeft();
-  $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : (store.planLevel() === 0 ? (left ? '1 maquette offerte avec la formule Découverte.' : 'Maquette offerte déjà utilisée.') : `${left} maquette${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`);
+  $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : (store.planLevel() === 0 ? 'Les maquettes commencent à la formule Essentiel.' : `${left} maquette${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`);
 }
 
 /** street-level photo (Panoramax, open licence), fetched when the card opens */
@@ -484,7 +488,7 @@ function demoReady(frame) {
 $('#btn-build').addEventListener('click', async () => {
   const l = state.lead;
   store.setAuthor($('#author').value);
-  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(store.planLevel() === 0 ? 'Tu as utilisé ta maquette offerte.' : `Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
+  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(store.planLevel() === 0 ? 'Les maquettes de sites commencent à la formule Essentiel.' : `Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
   store.countBuild(l.id);
   track('demo_generated', { trade: l.trade });
   const t0 = performance.now();
@@ -757,6 +761,7 @@ if (supa.enabled) {
     if (error) return toast(error);
     form.elements.password.value = '';
     track(form.dataset.mode === 'signup' ? 'signup' : 'login');
+    setTimeout(() => { if (state.data && store.planLevel() === 0 && document.body.dataset.state === 'scan') lockedPaywall(); }, 1600); // account created, still no plan
     closeOverlays(); toast(form.dataset.mode === 'signup' ? 'Compte créé. Voici tes commerces.' : 'Connecté.');
   });
   $('#gate-btn').addEventListener('click', () => askAccount());
