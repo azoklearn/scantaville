@@ -691,3 +691,62 @@ html { scrollbar-width: thin; }
 [data-tpl="table"][data-trade="cafe"] .plate .pl-rim { stroke-width: 2.4; }
 [data-tpl="table"][data-trade="fastfood"] .plate .pl-dash { stroke-dasharray: 14 8; stroke-width: 2; }
 [data-tpl="table"][data-trade="fastfood"] .sig, [data-tpl="table"][data-trade="fastfood"] .menu-card { border-radius: 20px; }
+
+
+/* =====================================================================================================
+   VARIANTS  (pickVariant in js/demo/trade-kit.mjs)
+   data-look="b" = second layout of the family · data-flip="1" = mirrored ornament.
+   Palettes are set inline on :root by main.mjs. Two shops of the same trade rarely look alike.
+   ===================================================================================================== */
+
+/* salon b: the name leads, the portrait follows */
+[data-tpl="salon"][data-look="b"] .name { order: 1; margin-top: 0; }
+[data-tpl="salon"][data-look="b"] .tagline { order: 2; }
+[data-tpl="salon"][data-look="b"] .hero-art { order: 3; margin-top: 34px; width: min(54cqw, 230px); }
+[data-tpl="salon"][data-look="b"] .hero-txt > div.reveal { order: 4; }
+[data-tpl="salon"][data-look="b"] .sec--services { background: var(--bg); border-top: 1px solid var(--line); }
+[data-tpl="salon"][data-look="b"] .sec--sig { background: var(--bg2); }
+[data-tpl="salon"][data-flip="1"] .sun { right: auto; left: -30%; }
+[data-tpl="salon"][data-flip="1"] .hero-art .trade-badge { left: auto; right: -16px; }
+[data-tpl="salon"][data-flip="1"] .spark-a { left: auto; right: -24%; }
+[data-tpl="salon"][data-flip="1"] .spark-b { right: auto; left: -12%; }
+@media (min-width: 860px) {
+  [data-tpl="salon"][data-flip="1"] .hero-in { flex-direction: row; }
+  [data-tpl="salon"][data-look="b"] .hero-art { margin-top: 0; width: min(30%, 320px); }
+}
+
+/* table b: everything centred under the plate, like a menu cover */
+[data-tpl="table"][data-look="b"] .hero { background: radial-gradient(80% 55% at 50% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%); }
+[data-tpl="table"][data-look="b"] .plate-slot { right: 50%; translate: 50% 0; top: 4px; width: min(66vw, 330px); }
+[data-tpl="table"][data-look="b"] .hero-txt { text-align: center; padding-top: min(74vw, 366px); }
+[data-tpl="table"][data-look="b"] .eyebrow, [data-tpl="table"][data-look="b"] .hero-city, [data-tpl="table"][data-look="b"] .cta { justify-content: center; }
+[data-tpl="table"][data-look="b"] .tagline { margin-inline: auto; }
+[data-tpl="table"][data-look="b"] .hero-city::after { content: ""; width: 44px; height: 1px; background: currentColor; }
+[data-tpl="table"][data-look="b"] .pill--hero { margin-inline: auto; }
+[data-tpl="table"][data-look="b"] .sig { border-width: 1px 0; border-radius: 0; background: transparent; }
+@media (min-width: 860px) {
+  [data-tpl="table"][data-look="b"] .plate-slot { top: 40px; right: 50%; width: min(30vw, 400px); }
+  [data-tpl="table"][data-look="b"] .hero-txt { max-width: none; padding-top: min(33vw, 440px); }
+}
+
+/* fournil b: plain painted fascia instead of the striped awning, name in ink */
+[data-tpl="fournil"][data-look="b"] .awning-stripes { background: var(--accent); }
+[data-tpl="fournil"][data-look="b"] .awning-scallop { background: radial-gradient(circle at 14px 0, var(--accent) 13.4px, transparent 14.2px) 0 0 / 28px 15px repeat-x; }
+[data-tpl="fournil"][data-look="b"] .name { color: var(--ink); text-shadow: .035em .045em 0 var(--accent); }
+[data-tpl="fournil"][data-look="b"] .sec--services { background: var(--paper); }
+[data-tpl="fournil"][data-look="b"] .sig { background: var(--bg2); }
+[data-tpl="fournil"][data-flip="1"] .stamp { right: auto; left: 2px; rotate: 10deg; }
+@media (min-width: 860px) { [data-tpl="fournil"][data-flip="1"] .stamp { right: auto; left: 4%; } }
+
+/* atelier b: night shift, the hero turns to ink */
+[data-tpl="atelier"][data-look="b"] .hero { --grid: color-mix(in srgb, var(--bg) 9%, transparent); background-color: var(--ink); color: var(--bg); }
+[data-tpl="atelier"][data-look="b"] .strip li { border-color: var(--bg); background: transparent; }
+[data-tpl="atelier"][data-look="b"] .strip li:first-child { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+[data-tpl="atelier"][data-look="b"] .hero .btn--solid { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+[data-tpl="atelier"][data-look="b"] .hero .btn--line { background: transparent; border-color: var(--bg); color: var(--bg); }
+[data-tpl="atelier"][data-look="b"] .hero .pill { background: transparent; border-color: var(--bg); color: var(--bg); }
+[data-tpl="atelier"][data-look="b"] .hero .pill * { color: inherit; }
+[data-tpl="atelier"][data-look="b"] .hero .pill-detail { opacity: .78; }
+[data-tpl="atelier"][data-look="b"] .hero .cross { filter: invert(1); }
+[data-tpl="atelier"][data-look="b"] .trade-badge--corner { border-color: var(--bg); }
+[data-tpl="atelier"][data-look="b"] .sig { background: var(--bg); }

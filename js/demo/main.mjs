@@ -5,7 +5,8 @@ import { TRADES } from '../core/leads.mjs';
 import { cleanText, cleanFirstName, cleanPhone, cleanEmail, cleanSocial, cleanCoords, cleanDomain } from './safe.mjs';
 import { parseOpeningHours, statusNow } from './hours.mjs';
 import { FAMILY_COPY, SAMPLES, SAMPLE_BY_FAMILY, copyFor, cuisineLabel, monogram } from './content.mjs';
-import { kitFor } from './trade-kit.mjs';
+import { kitFor, pickVariant, PALETTE_VARS } from './trade-kit.mjs';
+import { TRADE_COPY } from './content.mjs';
 import { renderFamily } from './templates.mjs';
 
 const FONTS = {
@@ -63,6 +64,11 @@ function buildModel(p) {
   const city = cleanText(p.c, 60);
   const copy = copyFor(trade, name);
   const kit = kitFor(trade);
+  const coords0 = cleanCoords(p.la, p.lo);
+  const vRaw = Number(p.v);
+  const variant = pickVariant(trade, `${name}|${coords0 ? coords0.lat.toFixed(4) + ',' + coords0.lon.toFixed(4) : city}`, Number.isInteger(vRaw) && vRaw >= 0 && vRaw < 12 ? vRaw : 0);
+  // a tagline refined from the shop's name (chocolaterie, cave...) says more than a generic alternate: keep it
+  const tagline = variant.tagline && copy.tagline === TRADE_COPY[trade]?.tagline ? variant.tagline : copy.tagline;
   const coords = cleanCoords(p.la, p.lo);
   const addr = splitAddress(cleanText(p.a, 160), city);
   const hoursRaw = cleanText(p.h, 300);
@@ -70,7 +76,7 @@ function buildModel(p) {
   const len = Array.from(name).length;
   return {
     name, trade, tpl, city,
-    label: copy.label, tagline: copy.tagline, items: copy.items, kit, fam: { ...FAMILY_COPY[tpl], ...(kit.ui || {}) },
+    label: copy.label, tagline, items: copy.items, kit, variant, fam: { ...FAMILY_COPY[tpl], ...(kit.ui || {}) },
     mono: monogram(name, Array.from(copy.label)[0]),
     longest: Math.max(4, ...words.map((w) => Array.from(w).length)),
     lenScale: len <= 14 ? 1 : len <= 24 ? 0.86 : len <= 38 ? 0.72 : len <= 50 ? 0.6 : 0.5,
@@ -114,6 +120,10 @@ function render() {
   if (mapCleanup) { mapCleanup(); mapCleanup = null; }
   root.dataset.tpl = model.tpl;
   root.dataset.trade = model.trade;
+  root.dataset.look = model.variant.look;
+  root.dataset.flip = model.variant.flip ? '1' : '0';
+  for (const name of PALETTE_VARS) root.style.removeProperty(name);
+  for (const [name, value] of Object.entries(model.variant.palette)) if (PALETTE_VARS.includes(name)) root.style.setProperty(name, value);
   loadFonts(model.tpl);
   document.title = `${model.name}${model.city ? ' · ' + model.city : ''} (maquette)`;
   if (ribbon) ribbon.textContent = `Maquette non officielle${model.by ? ` proposée par ${model.by}` : ''} · ce site n’est pas en ligne`;

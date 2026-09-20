@@ -113,3 +113,72 @@ export function kitFor(trade) {
   const kit = Object.hasOwn(TRADE_KIT, trade) ? TRADE_KIT[trade] : TRADE_KIT.commerce;
   return { ...kit, sig: { ...kit.sig, note: NOTE } };
 }
+
+// ---- variants: two hairdressers on the same street must not get the same site ---------------------
+// Everything is derived from the shop itself (name + position), so a given shop always gets the same
+// site and its link stays stable. The app can also ask for "another style" with the payload key `v`.
+
+/** Alternate palettes per trade (index 0 = the base palette from demo.css, so no override). */
+const PALETTES = {
+  coiffeur: [{}, { '--bg': '#EFEDE8', '--bg2': '#DFDDD4', '--accent': '#2F4B47', '--on-accent': '#F3F7F5' }, { '--bg': '#F3EEF0', '--bg2': '#E6DADF', '--accent': '#7A3E5C', '--on-accent': '#FFF4F8' }],
+  beaute: [{}, { '--bg': '#F6EEEA', '--bg2': '#EBD9D3', '--accent': '#B5656B', '--on-accent': '#FFF6F5' }, { '--bg': '#F1EEF4', '--bg2': '#E0DAEA', '--accent': '#6A5A8C', '--on-accent': '#F8F5FF' }],
+  tatoueur: [{}, { '--bg': '#0F1012', '--bg2': '#191B1F', '--accent': '#C9A227', '--on-accent': '#15120A' }, { '--bg': '#0F1211', '--bg2': '#19201D', '--accent': '#3F9C86', '--on-accent': '#04120E' }],
+  restaurant: [{}, { '--bg': '#1B1112', '--bg2': '#26181A', '--accent': '#DD9763', '--on-accent': '#1B0E08', '--paper-ink': '#2A1A1C' }, { '--bg': '#101722', '--bg2': '#172132', '--accent': '#C9B37A', '--on-accent': '#141108', '--paper-ink': '#172132' }],
+  bar: [{}, { '--bg': '#0E1614', '--bg2': '#15211E', '--accent': '#6FD0A8', '--on-accent': '#07120E', '--paper-ink': '#15211E' }, { '--bg': '#170F10', '--bg2': '#231618', '--accent': '#F0785A', '--on-accent': '#1B0906', '--paper-ink': '#231618' }],
+  cafe: [{}, { '--bg': '#1A1F1B', '--bg2': '#232A25', '--accent': '#D9C08A', '--on-accent': '#1A1608', '--paper-ink': '#232A25' }, { '--bg': '#1F1A24', '--bg2': '#2A2331', '--accent': '#E6A8B8', '--on-accent': '#241018', '--paper-ink': '#2A2331' }],
+  fastfood: [{}, { '--bg': '#141313', '--bg2': '#1F1D1D', '--accent': '#FFC629', '--on-accent': '#1A1303' }, { '--bg': '#15110F', '--bg2': '#211916', '--accent': '#E63946', '--on-accent': '#FFF5F5' }],
+  boulangerie: [{}, { '--bg': '#F6EEE3', '--bg2': '#EAD9C6', '--accent': '#A7442B', '--accent2': '#5C2A1A' }, { '--bg': '#F3F0E1', '--bg2': '#E3E3C8', '--accent': '#5D7A3A', '--accent2': '#8E4B1F' }],
+  boucherie: [{}, { '--bg': '#F4EFE6', '--bg2': '#E4DDD0', '--accent': '#1F3A5F', '--accent2': '#A12B26' }, { '--bg': '#F2F0E4', '--bg2': '#E0E2CF', '--accent': '#2E5339', '--accent2': '#7A1F1B' }],
+  epicerie: [{}, { '--accent': '#B9572A', '--accent2': '#2F6046' }, { '--bg': '#F2F0E6', '--bg2': '#E1E4DC', '--accent': '#314B7A', '--accent2': '#B9772A' }],
+  fleuriste: [{}, { '--bg': '#F6F1F8', '--bg2': '#E9DDF0', '--accent': '#7A5AA6', '--accent2': '#3F6B4E' }, { '--bg': '#FBF4EA', '--bg2': '#F4E3CB', '--accent': '#D9772B', '--accent2': '#3F6B4E' }],
+  garage: [{}, { '--accent': '#FFD000', '--on-accent': '#111110' }, { '--bg': '#E6E9EE', '--bg2': '#D7DCE4', '--accent': '#1E6BFF', '--on-accent': '#FFFFFF' }],
+  artisan: [{}, { '--bg': '#ECE8E1', '--bg2': '#DED8CC', '--accent': '#E0561F', '--on-accent': '#FFFFFF' }, { '--bg': '#E8ECE7', '--bg2': '#D8DFD6', '--accent': '#1F7A4D', '--on-accent': '#FFFFFF' }],
+  mode: [{}, { '--accent': '#2B2622', '--on-accent': '#F4EFE8' }, { '--bg': '#F5EFEC', '--bg2': '#EADDD8', '--accent': '#9C3D3A', '--on-accent': '#FFF6F4' }],
+  commerce: [{}, { '--accent': '#2A4FA3', '--accent2': '#D08A1E' }, { '--bg': '#F6F0EA', '--bg2': '#EADDD6', '--accent': '#B03A48', '--accent2': '#2F6046' }],
+};
+
+/** Alternate taglines (index 0 = the one in content.mjs). Same honesty rules: nothing that could be false. */
+const TAGLINES = {
+  coiffeur: ['Votre salon, au coin de la rue.', 'On s’occupe de vous, du shampoing au coiffage.'],
+  beaute: ['Une parenthèse, tout près de chez vous.', 'Prenez le temps, on s’occupe du reste.'],
+  tatoueur: ['Une idée en tête ? Parlons-en.', 'Le studio, l’encre, et votre histoire.'],
+  restaurant: ['On vous garde une table.', 'À table, tout simplement.'],
+  bar: ['Le comptoir du quartier.', 'Poussez la porte, on s’occupe du reste.'],
+  cafe: ['Le café du coin, comme on l’aime.', 'Entrez, asseyez-vous, soufflez.'],
+  fastfood: ['Sur place ou à emporter.', 'Vite servi, tout près de chez vous.'],
+  boulangerie: ['Votre boulangerie de quartier.', 'Du pain, des viennoiseries, et le sourire.'],
+  boucherie: ['Le conseil de votre boucher, en plus.', 'De la coupe au conseil de cuisson.'],
+  epicerie: ['L’épicerie du quartier.', 'Poussez la porte, il y a de quoi se faire plaisir.'],
+  fleuriste: ['Votre fleuriste de quartier.', 'Un bouquet, et tout est dit.'],
+  garage: ['Votre garage de proximité.', 'On regarde, on explique, on répare.'],
+  artisan: ['Du travail soigné, près de chez vous.', 'Un besoin ? On en parle.'],
+  mode: ['Poussez la porte, prenez le temps.', 'La boutique du quartier.'],
+  commerce: ['Poussez la porte, on vous renseigne.', 'Près de chez vous, toute l’année.'],
+};
+
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+}
+
+/**
+ * seed = what identifies the shop; v = optional "another style" offset chosen in the app (0..11).
+ * The six (palette, layout) pairs are all reachable by walking v = 0..5, so every click changes something visible.
+ */
+export function pickVariant(trade, seed, v = 0) {
+  const h = fnv1a(String(seed));
+  const k = ((h % 6) + v) % 6;
+  const palettes = Object.hasOwn(PALETTES, trade) ? PALETTES[trade] : PALETTES.commerce;
+  const taglines = Object.hasOwn(TAGLINES, trade) ? TAGLINES[trade] : [];
+  const t = ((h >>> 5) + v) % 3;
+  return {
+    palette: palettes[k % 3] || {},
+    look: k % 2 ? 'b' : 'a',
+    flip: ((h >>> 8) + v) % 2 === 1,
+    hoursFirst: (h >>> 9) % 2 === 1,
+    tagline: t === 0 ? null : taglines[t - 1] || null,
+  };
+}
+
+export const PALETTE_VARS = ['--bg', '--bg2', '--ink', '--muted', '--accent', '--accent2', '--on-accent', '--paper', '--paper-ink', '--line'];

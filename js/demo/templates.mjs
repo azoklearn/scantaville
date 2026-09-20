@@ -184,7 +184,7 @@ function salon(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, signature(m), hours, loc, contact),
+    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('div', { class: 'ft-mono', 'aria-hidden': 'true', text: m.mono })),
   ];
 }
@@ -244,7 +244,7 @@ function table(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, signature(m), hours, loc, contact),
+    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, flourish()),
   ];
 }
@@ -311,7 +311,7 @@ function fournil(m) {
   return [
     awning(),
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, signature(m), hours, loc, contact),
+    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('div', { class: 'ft-mono', 'aria-hidden': 'true', text: m.mono })),
   ];
 }
@@ -358,7 +358,7 @@ function atelier(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, marquee, services, signature(m), hours, loc, contact),
+    h('main', null, hero, marquee, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('p', { class: 'ft-giant', 'aria-hidden': 'true', text: m.name })),
   ];
 }

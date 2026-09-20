@@ -4,6 +4,7 @@
 // Payload keys (short on purpose, the URL gets pasted in DMs):
 //   n name · t trade key · c city · a address · p phone · h OSM opening_hours · la/lo lat/lon
 //   ig/fb social urls · e email · cu cuisine · by author first name · d suggested free domain
+//   v "another style" offset (1..11), absent for the shop's default look
 
 export function encodePayload(obj) {
   const clean = {};
@@ -24,10 +25,10 @@ export function decodePayload(str) {
   } catch { return null; }
 }
 
-export function leadToPayload(lead, city, author) {
+export function leadToPayload(lead, city, author, variant = 0) {
   return {
     n: lead.name, t: lead.trade, c: city, a: lead.addr, p: lead.phone, h: lead.hours,
     la: lead.lat, lo: lead.lon, ig: lead.social?.instagram, fb: lead.social?.facebook,
-    e: lead.email, cu: lead.cuisine, by: author || null, d: lead.domain,
+    e: lead.email, cu: lead.cuisine, by: author || null, d: lead.domain, v: variant || null,
   };
 }

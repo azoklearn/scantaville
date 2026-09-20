@@ -31,7 +31,7 @@ Puis http://localhost:5180 · lien direct vers une ville : `/?v=37261` (code INS
 | `js/city.mjs` | Autocomplete (geo.api.gouv.fr), chargement d'une ville pré-calculée ou scan en direct |
 | `js/core/leads.mjs` | **Cœur partagé navigateur + Node** : requête Overpass, tri des commerces, exclusions (chaînes, etc.), vérification de domaines par DNS-over-HTTPS |
 | `js/core/payload.mjs` | Données de la maquette encodées dans l'URL (pas de base de données) |
-| `demo.html`, `css/demo.css`, `js/demo/*` | Le site de démo généré : 4 familles de templates, et pour chacun des 15 métiers sa palette, son pictogramme, son bouton d'action, ses textes et un bloc dédié (`js/demo/trade-kit.mjs`, `js/demo/content.mjs`) |
+| `demo.html`, `css/demo.css`, `js/demo/*` | Le site de démo généré : 4 familles de templates, et pour chacun des 15 métiers sa palette, son pictogramme, son bouton d'action, ses textes et un bloc dédié. Deux commerces du même métier ne se ressemblent pas : palette, mise en page, accroche et ornement varient selon le nom et la position du commerce, et le bouton « Autre style » en propose 6 (`js/demo/trade-kit.mjs`, `js/demo/content.mjs`) |
 | `js/content/*` | Scripts de vente par métier, objections, kit légal |
 | `scripts/build-cities.mjs` | Pré-calcul des villes vers `data/cities/{insee}.json` + `data/index.json` |
 | `scripts/serve.mjs` | Serveur statique local |

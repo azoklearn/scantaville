@@ -390,34 +390,42 @@ $('#fb-hassite').addEventListener('click', () => {
 // ───────────────────────── Demo site ─────────────────────────
 const BUILD_STEPS = ['Nom et métier', 'Adresse et plan', 'Horaires d\'ouverture', 'Bouton d\'appel', 'Mise en page'];
 
+function demoUrlFor(l) {
+  const url = new URL('demo.html', location.href);
+  url.hash = encodePayload(leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0));
+  return url.href;
+}
+
+/** resolves when the demo page says it has rendered ('load' alone could be a stale about:blank) */
+function demoReady(frame) {
+  return new Promise((res) => {
+    const onMsg = (e) => { if (e.source === frame.contentWindow && e.data?.type === 'stv-demo-ready') done(); };
+    const done = () => { removeEventListener('message', onMsg); clearTimeout(timer); res(); };
+    const timer = setTimeout(done, 3500);
+    addEventListener('message', onMsg);
+  });
+}
+
 $('#btn-build').addEventListener('click', async () => {
   const l = state.lead;
   store.setAuthor($('#author').value);
   if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall('Tu as utilisé tes 3 maquettes du jour.'); }
   store.countBuild(l.id);
   const t0 = performance.now();
-  const url = new URL('demo.html', location.href);
-  url.hash = encodePayload(leadToPayload(l, state.data.name, store.getAuthor()));
-  state.demoUrl = url.href;
+  state.demoUrl = demoUrlFor(l);
 
   $('#lead').hidden = true;
   const frame = $('#demo-frame'), build = $('#build'), steps = $('#build-steps');
   frame.classList.remove('on'); build.classList.remove('off');
   steps.replaceChildren(...BUILD_STEPS.map((s) => el('li', { text: s })));
   $('#demo-name').textContent = l.name; $('#demo-ms').textContent = '…';
-  $('.demo-side').dataset.expanded = 'false'; $('#demo-more').textContent = 'Script de vente et suivi'; $('#demo-more').setAttribute('aria-expanded', 'false');
-  $('#demo-open').href = url.href;
+  $('.demo-side').dataset.expanded = 'false'; $('#demo-more').textContent = 'Script et suivi'; $('#demo-more').setAttribute('aria-expanded', 'false');
+  $('#demo-open').href = state.demoUrl;
   openOverlay('#demo');
   renderStatus(); renderScripts();
 
-  // the demo page posts 'stv-demo-ready' once rendered ('load' alone could be a stale about:blank)
-  const loaded = new Promise((res) => {
-    const onMsg = (e) => { if (e.source === frame.contentWindow && e.data?.type === 'stv-demo-ready') done(); };
-    const done = () => { removeEventListener('message', onMsg); clearTimeout(timer); res(); };
-    const timer = setTimeout(done, 3500);
-    addEventListener('message', onMsg);
-  });
-  frame.src = url.href;
+  const loaded = demoReady(frame);
+  frame.src = state.demoUrl;
   // the flourish is short on purpose: the site really is ready in well under a second
   for (const li of $$('li', steps)) { await new Promise((r) => setTimeout(r, 130)); li.classList.add('ok'); }
   await loaded;
@@ -425,10 +433,26 @@ $('#btn-build').addEventListener('click', async () => {
   build.classList.add('off'); frame.classList.add('on'); sound.built();
 });
 
+// "Autre style": same shop, another palette / layout. The choice travels in the link (payload key v).
+$('#demo-restyle').addEventListener('click', async () => {
+  const l = state.lead, frame = $('#demo-frame');
+  l._style = ((l._style || 0) + 1) % 6;
+  state.demoUrl = demoUrlFor(l);
+  $('#demo-open').href = state.demoUrl;
+  frame.classList.remove('on');
+  const loaded = demoReady(frame);
+  // only the hash changes, and the demo page re-renders on hashchange: no reload, so it is instant
+  if (frame.contentWindow && frame.src.split('#')[0] === state.demoUrl.split('#')[0]) frame.contentWindow.location.replace(state.demoUrl);
+  else frame.src = state.demoUrl;
+  await loaded;
+  frame.classList.add('on'); sound.flip();
+  renderScripts();
+});
+
 $('#demo-more').addEventListener('click', (e) => {
   const side = $('.demo-side'), open = side.dataset.expanded !== 'true';
   side.dataset.expanded = String(open); e.currentTarget.setAttribute('aria-expanded', String(open));
-  e.currentTarget.textContent = open ? 'Revoir le site en grand' : 'Script de vente et suivi';
+  e.currentTarget.textContent = open ? 'Revoir le site en grand' : 'Script et suivi';
 });
 
 $('#demo-copy').addEventListener('click', async () => {

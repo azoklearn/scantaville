@@ -324,7 +324,9 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .status { display: flex; align-items: center; gap: 4px; min-width: 0; margin-top: 12px; font: 400 10.5px var(--mono); text-transform: uppercase; color: var(--muted); }
 .status .chips { padding: 0 0 0 8px; min-width: 0; flex: 1; }
 /* phone: the generated site is the star, the sales kit stays folded until asked for */
-.demo-more { width: 100%; margin-top: 8px; }
+.demo-actions--sub { margin-top: 8px; }
+.demo-actions--sub .ghost { flex: 1; }
+.demo-more { margin: 0; }
 .demo-side[data-expanded="false"] .status, .demo-side[data-expanded="false"] .scripts { display: none; }
 .demo-side[data-expanded="true"] { max-height: 70dvh; }
 .scripts { margin-top: 12px; }
@@ -436,6 +438,7 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
   }
   @keyframes phone-in { from { opacity: 0; transform: translateY(50px) scale(.95); } }
   .demo-more { display: none; }
+  .demo-actions--sub .ghost { flex: none; }
   .demo-side[data-expanded] .status { display: flex; } .demo-side[data-expanded] .scripts { display: block; }
   .demo-side[data-expanded] { max-height: 88dvh; }
   .demo-side { width: 400px; max-height: 88dvh; padding: 28px; border: 0; border-radius: 24px; box-shadow: var(--shadow-lg); }
