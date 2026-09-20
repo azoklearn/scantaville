@@ -49,6 +49,7 @@ begin
   update public.profiles set plan = p_plan, plan_until = p_until where lower(email) = lower(p_email);
 end $$;
 revoke all on function public.set_plan(text, text, timestamptz) from public, anon, authenticated;
+grant execute on function public.set_plan(text, text, timestamptz) to service_role;
 
 -- ─────────────────────────────────────────── leads (filled by scripts/push-to-supabase.mjs)
 create table if not exists public.leads (
@@ -141,3 +142,16 @@ alter table public.waitlist enable row level security;
 drop policy if exists "anyone can join" on public.waitlist;
 create policy "anyone can join" on public.waitlist for insert to anon, authenticated with check (true);
 -- no select policy: only you (dashboard / service role) can read the list.
+
+-- ─────────────────────────────────────────── grants
+-- Some projects do not give the API roles default privileges on tables created from the SQL editor:
+-- without these lines the import answers "permission denied for table leads". Row-level security still applies
+-- to anon / authenticated; service_role (import script, webhook) bypasses it by design.
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+grant select on public.profiles to authenticated;
+grant select, insert, update, delete on public.pipeline to authenticated;
+grant select, insert on public.reports to authenticated;
+grant insert on public.waitlist to anon, authenticated;
+grant usage on all sequences in schema public to anon, authenticated;

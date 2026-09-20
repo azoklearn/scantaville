@@ -7,7 +7,7 @@
 export const PLANS = [
   {
     id: 'm1', level: 1, name: 'Essentiel', period: '1 mois', cycle: 'par mois, sans engagement',
-    price: 19.9, months: 1, checkoutUrl: '',
+    price: 19.9, months: 1, checkoutUrl: 'https://whop.com/checkout/plan_kNW3NHWQg9Ty1/',
     pitch: 'Pour tester sur ta ville et décrocher un premier rendez-vous.',
     perks: [
       { text: '20 commerces débloqués par ville' },
@@ -19,7 +19,7 @@ export const PLANS = [
   },
   {
     id: 'm3', level: 2, name: 'Pro', period: '3 mois', cycle: 'tous les 3 mois',
-    price: 29.9, months: 3, checkoutUrl: '', popular: true,
+    price: 29.9, months: 3, checkoutUrl: 'https://whop.com/checkout/plan_m05UMVsdrVkG9/', popular: true,
     pitch: 'Le temps qu’il faut pour signer un premier client : compte ~50 contacts.',
     perks: [
       { text: 'Tout Essentiel' },
@@ -34,7 +34,7 @@ export const PLANS = [
   },
   {
     id: 'y1', level: 3, name: 'Illimité', period: '1 an', cycle: 'par an',
-    price: 79, months: 12, checkoutUrl: '',
+    price: 79, months: 12, checkoutUrl: 'https://whop.com/checkout/plan_5cYuHjzfNRNQ4/',
     pitch: 'Pour en faire une vraie activité, toute l’année, dans plusieurs villes.',
     perks: [
       { text: 'Tout Pro' },
