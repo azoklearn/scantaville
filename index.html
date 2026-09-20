@@ -95,6 +95,11 @@
       <small id="panel-sub"></small>
     </button>
     <div id="filters" class="chips" role="toolbar" aria-label="Filtrer par métier"></div>
+    <div class="panel-tools">
+      <button id="btn-csv" class="ghost small" type="button">Exporter en CSV</button>
+      <button id="btn-kit" class="ghost small" type="button">Kit légal</button>
+      <button id="btn-docs" class="ghost small" type="button">Devis / facture</button>
+    </div>
     <ol id="list" class="list"></ol>
     <p class="attrib">Données © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a> (ODbL). Chaque commerce est « à vérifier » avant contact.</p>
   </aside>
@@ -137,6 +142,7 @@
           <p>Passe en boutique, téléphone en main, ou envoie le lien en DM. « Je vous ai déjà fait votre site, regardez. » Le script est fourni, les réponses aux objections aussi.</p>
         </li>
       </ol>
+      <a class="upsell upsell--band" data-upsell="accueil"></a>
       <aside class="honest">
         <h3>Ce qu'on ne te dira pas ailleurs</h3>
         <p>Ce n'est pas magique. Il faut contacter des dizaines de commerces pour obtenir un oui, certains points auront déjà un site qu'on n'a pas détecté (d'où le bouton « vérifier »), et il te faut un statut de micro-entrepreneur pour facturer. La carte, elle, est gratuite. Le reste, c'est toi.</p>
@@ -145,34 +151,10 @@
 
     <section id="tarifs" class="pricing">
       <p class="eyebrow">Tarifs</p>
-      <h2>La carte est gratuite. Tu paies la boîte à outils.</h2>
-      <div class="plans">
-        <article class="plan">
-          <h3>Découverte</h3>
-          <p class="price">0 €</p>
-          <ul>
-            <li>Scans de villes illimités</li>
-            <li>Tous les points, tous les filtres</li>
-            <li>La carte de ta ville à partager</li>
-            <li>3 maquettes de site par jour</li>
-            <li>Script « en boutique »</li>
-          </ul>
-        </article>
-        <article class="plan pro">
-          <p class="tag">Un site vendu = 2 ans et demi d'abonnement</p>
-          <h3>Pro</h3>
-          <p class="price">14,90 €<small>/mois · sans engagement</small></p>
-          <ul>
-            <li>Maquettes illimitées, sans filigrane</li>
-            <li>Scripts DM, e-mail, appel + objections</li>
-            <li>Export du site prêt à héberger (ZIP)</li>
-            <li>Suivi : contacté, RDV, signé</li>
-            <li>Kit légal : statut, facture, mentions</li>
-          </ul>
-          <button class="cta" type="button" data-open-paywall>Rejoindre la liste d'attente</button>
-        </article>
-      </div>
-      <p class="fine center">Pas de compte à rebours bidon, pas de fausse notification de paiement. Remboursé sous 7 jours, sans condition.</p>
+      <h2>La carte est gratuite. Tu choisis ta boîte à outils.</h2>
+      <div id="plans" class="plans"></div>
+      <p class="free-line"><b>Découverte · 0 €</b> <span id="free-perks"></span></p>
+      <p class="fine center">Chaque formule comprend tout ce qu'offre la précédente. Pas de compte à rebours bidon, pas de fausse notification de paiement. Remboursé sous 7 jours, sans condition.</p>
     </section>
 
     <footer class="foot">
@@ -247,6 +229,10 @@
           <pre id="script-body" class="script"></pre>
           <button id="script-copy" class="ghost small" type="button">Copier le script</button>
         </div>
+        <div class="after-yes">
+          <button id="demo-quote" class="ghost small" type="button">Il est intéressé ? Faire le devis</button>
+          <a class="upsell" data-upsell="maquette"></a>
+        </div>
       </div>
     </div>
   </div>
@@ -265,19 +251,104 @@
     </div>
   </div>
 
-  <!-- ───────── Paywall ───────── -->
+  <!-- ───────── Paywall: pick a plan ───────── -->
   <div id="paywall" class="overlay" hidden>
     <div class="overlay-bg" data-close></div>
     <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
-      <p class="kicker"><i class="dot"></i> Offre Pro</p>
-      <h2 id="pay-title">Tu as utilisé tes 3 maquettes du jour.</h2>
-      <p class="muted">La carte reste gratuite et illimitée. La boîte à outils complète (maquettes illimitées sans filigrane, tous les scripts, export du site, suivi, kit légal), c'est <b class="accent">14,90 €/mois</b>, sans engagement. Un seul site vendu la rembourse pour plus de deux ans.</p>
+      <p class="kicker"><i class="dot"></i> Abonnement</p>
+      <h2 id="pay-title">Choisis ta formule</h2>
+      <p id="pay-sub" class="muted">La carte reste gratuite et illimitée. Chaque formule comprend tout ce qu'offre la précédente.</p>
+      <div id="pay-plans" class="pay-plans" role="radiogroup" aria-label="Formules"></div>
+      <ul id="pay-perks" class="pay-perks"></ul>
       <form id="waitlist">
         <input type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail">
-        <button class="cta" type="submit">Prévenez-moi à l'ouverture</button>
+        <button id="pay-go" class="cta" type="submit">Continuer</button>
       </form>
-      <p class="fine">Prototype : le paiement n'est pas encore branché. Ton e-mail reste sur cet appareil.</p>
+      <p id="pay-fine" class="fine">Prototype : le paiement n'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l'ouverture.</p>
+    </article>
+  </div>
+
+  <!-- ───────── Quotes and invoices (Pro) ───────── -->
+  <div id="docs" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <div class="docs-wrap" role="dialog" aria-modal="true" aria-labelledby="docs-title">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <form id="doc-form" class="docs-form" autocomplete="off" data-type="devis">
+        <p class="kicker"><i class="dot"></i> Devis et factures</p>
+        <h2 id="docs-title">Un document carré, en deux minutes</h2>
+        <div class="seg" role="tablist">
+          <button type="button" role="tab" data-doc-type="devis" aria-selected="true">Devis</button>
+          <button type="button" role="tab" data-doc-type="facture" aria-selected="false">Facture</button>
+        </div>
+        <div class="f-grid">
+          <label>Numéro <input name="number" type="text" required></label>
+          <label>Date d'émission <input name="date" type="date" required></label>
+          <label class="only-devis">Validité (jours) <input name="validityDays" type="number" min="1" step="1"></label>
+          <label class="only-facture">Date de la prestation <input name="serviceDate" type="date"></label>
+          <label class="only-facture">Échéance (jours) <input name="dueDays" type="number" min="0" step="1"></label>
+        </div>
+
+        <fieldset>
+          <legend>Toi</legend>
+          <div class="f-grid">
+            <label>Nom et prénom <input name="seller.name" type="text" placeholder="Noan Martin"></label>
+            <label>SIREN ou SIRET <input name="seller.siret" type="text" inputmode="numeric" placeholder="123 456 789 00012"></label>
+            <label class="wide">Adresse <textarea name="seller.address" rows="2" placeholder="12 rue des Lilas&#10;37000 Tours"></textarea></label>
+            <label>E-mail <input name="seller.email" type="email"></label>
+            <label>Téléphone <input name="seller.phone" type="tel"></label>
+            <label class="check wide"><input name="seller.ei" type="checkbox"> Ajouter « EI » après mon nom (obligatoire en entreprise individuelle)</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Ton client</legend>
+          <div class="f-grid">
+            <label>Commerce <input name="client.name" type="text"></label>
+            <label>SIREN ou SIRET du client <input name="client.siren" type="text" inputmode="numeric"></label>
+            <label class="wide">Adresse <textarea name="client.address" rows="2"></textarea></label>
+            <label class="wide">À l'attention de <small>(facultatif)</small> <input name="client.contact" type="text"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Prestations <small>désignation · quantité · prix unitaire HT</small></legend>
+          <div id="doc-lines"></div>
+          <button id="doc-add" class="link" type="button">+ Ajouter une ligne</button>
+          <div id="doc-quick" class="chips doc-quick"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Conditions</legend>
+          <div class="f-grid">
+            <label class="check wide"><input name="vatFranchise" type="checkbox"> Micro-entreprise en franchise de TVA : pas de TVA, mention « art. 293 B du CGI »</label>
+            <label class="only-vat">Taux de TVA (%) <input name="vatRate" type="number" min="0" step="0.1"></label>
+            <label class="only-devis">Acompte à la commande (%) <input name="depositPct" type="number" min="0" max="100" step="5"></label>
+            <label class="wide">Paiement <input name="payment" type="text"></label>
+            <label class="wide">Coordonnées bancaires <small>(facultatif, imprimées sur le document)</small> <input name="bank" type="text" placeholder="IBAN FR76 …"></label>
+            <label class="wide">Ce qui est compris <textarea name="notes" rows="3"></textarea></label>
+          </div>
+        </fieldset>
+
+        <ul id="doc-issues" class="doc-issues"></ul>
+        <a class="upsell" data-upsell="devis"></a>
+        <p class="fine">Modèle fourni à titre indicatif : vérifie les mentions à jour sur service-public.fr. Garde chaque document 10 ans. À partir du 1er septembre 2027, tes factures à des professionnels devront passer par une plateforme de facturation électronique agréée.</p>
+      </form>
+      <div class="docs-preview">
+        <div class="docs-bar"><b id="doc-total"></b><button id="doc-print" class="cta" type="button">Imprimer ou enregistrer en PDF</button></div>
+        <div class="docs-preview-in"><iframe id="doc-frame" title="Aperçu du document"></iframe></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── Legal starter kit (Pro) ───────── -->
+  <div id="kit" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <article class="paycard kitcard" role="dialog" aria-modal="true" aria-labelledby="kit-title">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <p class="kicker"><i class="dot"></i> Kit légal</p>
+      <h2 id="kit-title">Vendre ton premier site dans les règles</h2>
+      <ol id="kit-list" class="kit-list"></ol>
     </article>
   </div>
 

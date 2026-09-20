@@ -233,29 +233,31 @@ export class FogLayer {
       const pop = age < 1 ? Math.max(0, easeOutBack(clamp01(age))) : 1;
       const tw = 1 + .1 * Math.sin(t * 2.2 + l.lat * 9000);
       const s = 40 * base * pop * tw;
-      g.globalAlpha = age < 1.4 ? 1 : .6; // newborn pins flash, then settle
+      g.globalAlpha = (age < 1.4 ? 1 : .6) * (l._locked ? .45 : 1); // newborn pins flash, then settle; locked ones stay faint
       g.drawImage(l.tier === 'silver' ? this.sprites.silver : this.sprites.gold, p.x - s / 2, p.y - s / 2, s, s);
       if (age < 1.6) { // shockwave on birth
         const k = clamp01(age / 1.6);
         g.globalAlpha = (1 - k) * .75; g.strokeStyle = '#1d5bff'; g.lineWidth = 1.5;
         g.beginPath(); g.arc(p.x, p.y, 4 + k * 26 * base, 0, Math.PI * 2); g.stroke();
       }
-      drawn.push(p.x, p.y, pop, l.tier === 'social' ? 1 : 0);
+      drawn.push(p.x, p.y, pop, l.tier === 'social' ? 1 : 0, l._locked ? 1 : 0);
       this._screen.push({ x: p.x, y: p.y, lead: l });
       if (l.id === this.selected) selectedScreen = p;
     }
     // crisp cores on top
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     const cr = Math.max(2.4, 4.2 * base);
-    for (let i = 0; i < drawn.length; i += 4) {
-      const x = drawn[i], y = drawn[i + 1], r = cr * drawn[i + 2], rose = drawn[i + 3];
+    for (let i = 0; i < drawn.length; i += 5) {
+      const x = drawn[i], y = drawn[i + 1], r = cr * drawn[i + 2] * (drawn[i + 4] ? .8 : 1), rose = drawn[i + 3];
       if (r <= 0) continue;
+      g.globalAlpha = drawn[i + 4] ? .38 : 1; // the plan has not unlocked this shop
       // solid blue dot = no website at all; hollow blue ring = Instagram / Facebook only
       g.beginPath(); g.arc(x, y + 1, r + 2.2, 0, Math.PI * 2); g.fillStyle = 'rgba(11,27,63,.16)'; g.fill();
       g.beginPath(); g.arc(x, y, r + 2, 0, Math.PI * 2); g.fillStyle = rose ? '#1d5bff' : '#ffffff'; g.fill();
       g.beginPath(); g.arc(x, y, Math.max(0, rose ? r - .4 : r), 0, Math.PI * 2); g.fillStyle = rose ? '#ffffff' : '#1d5bff'; g.fill();
     }
 
+    g.globalAlpha = 1;
     if (selectedScreen) {
       const k = (t * .9) % 1;
       g.strokeStyle = '#0b1b3f'; g.lineWidth = 2.2; g.globalAlpha = .95;

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- ScanTaVille · quote / invoice sheet. Reads the current document from localStorage (same origin, never from the URL:
+     it holds the user's SIRET and their client's details) and re-renders when the app says so. Printed as-is to PDF. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Document</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/doc.css">
+<script type="module">
+  import { renderSheet } from './js/doc/render.mjs';
+  import { blankDoc, DOC_TYPES } from './js/doc/model.mjs';
+  const KEY = 'scantaville.doc.current';
+  function draw() {
+    let doc = null;
+    try { doc = JSON.parse(localStorage.getItem(KEY)); } catch { /* fall through */ }
+    if (!doc || typeof doc !== 'object' || !doc.seller || !doc.client || !Array.isArray(doc.lines)) doc = blankDoc('devis');
+    document.title = `${DOC_TYPES[doc.type]?.label || 'Document'} ${doc.number || ''} · ${doc.client.name || ''}`.trim();
+    document.getElementById('page').replaceChildren(renderSheet(doc));
+  }
+  addEventListener('message', (e) => { if (e.origin === location.origin && e.data?.type === 'stv-doc-update') draw(); });
+  addEventListener('storage', (e) => { if (e.key === KEY) draw(); });
+  draw();
+</script>
+</head>
+<body>
+<main id="page"></main>
+</body>
+</html>

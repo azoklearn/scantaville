@@ -133,6 +133,7 @@ function footer(m, ...extra) {
     h('p', { class: 'ft-name', text: m.name }),
     place ? h('p', { class: 'ft-place', text: place }) : null,
     m.domain ? h('p', { class: 'ft-domain' }, h('span', { class: 'ft-domain-k', text: 'Bientôt sur ' }), h('span', { class: 'ft-domain-v', text: m.domain })) : null,
+    m.badge ? h('p', { class: 'ft-made', text: 'Maquette générée avec ScanTaVille · scantaville.fr' }) : null,
     h('p', { class: 'ft-legal', text: `Maquette de démonstration non officielle${m.by ? `, proposée par ${m.by}` : ''}. Ce site n’est pas en ligne. Informations issues de données ouvertes (© les contributeurs d’OpenStreetMap), à vérifier par le commerce.` })));
 }
 

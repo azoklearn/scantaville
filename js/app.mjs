@@ -6,6 +6,8 @@ import { drawCard, cardBlob } from './card.mjs';
 import * as sound from './sound.mjs';
 import * as store from './store.mjs';
 import { BRAND, applyBrand } from './brand.mjs';
+import { initDocs, openDocs } from './docs-ui.mjs';
+import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
 
 applyBrand();
 
@@ -230,7 +232,7 @@ function landed() {
     r.textContent = `#${rank.rank} / ${rank.total} villes · ${String(rank.per10k).replace('.', ',')} pour 10 000 hab.`;
     r.hidden = false;
   }
-  renderFilters(); renderList(); renderGoal();
+  applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
 }
 
@@ -252,6 +254,26 @@ const tierOf = (l) => (l.tier === 'pending' ? 'gold' : l.tier);
 const visible = (l) => !l._hidden && l.tier !== 'silver' && state.tiers[tierOf(l)] && (state.trade === 'all' || l.trade === state.trade);
 
 function applyFilter() { fog.setFilter(visible); }
+
+/**
+ * How many shops of this city the plan lets the user open. The map and the counter always show them all;
+ * the unlocked ones are picked round-robin across trades so that every filter keeps something to work on.
+ * Prototype: the city JSON is public, so this gate is only as strong as the UI. Production must serve the
+ * contact details of locked shops from an authenticated endpoint.
+ */
+function applyLocks() {
+  const leads = state.data.leads.filter((l) => l.tier !== 'silver'), max = limitFor('leadsPerCity', store.planLevel());
+  const open = new Set();
+  if (max >= leads.length) leads.forEach((l) => open.add(l.id));
+  else {
+    const byTrade = new Map();
+    for (const l of leads) { if (!byTrade.has(l.trade)) byTrade.set(l.trade, []); byTrade.get(l.trade).push(l); }
+    const queues = [...byTrade.values()].sort((a, b) => b.length - a.length);
+    for (let i = 0; open.size < max; i++) { let took = false; for (const q of queues) { if (q[i] && open.size < max) { open.add(q[i].id); took = true; } } if (!took) break; }
+  }
+  for (const l of state.data.leads) l._locked = !open.has(l.id);
+  state.unlocked = open.size;
+}
 
 function renderTierCounts() {
   const leads = state.data.leads.filter((l) => !l._hidden && l.tier !== 'silver');
@@ -281,12 +303,20 @@ function renderFilters() {
 }
 
 function renderList() {
-  const list = $('#list'), rows = state.data.leads.filter(visible), pipeline = store.getPipeline();
+  const all = state.data.leads.filter(visible), pipeline = store.getPipeline();
+  const rows = [...all.filter((l) => !l._locked), ...all.filter((l) => l._locked)], openCount = all.filter((l) => !l._locked).length;
+  const list = $('#list');
   list.replaceChildren();
-  $('#panel-sub').textContent = `${fr(rows.length)} commerce${rows.length > 1 ? 's' : ''}`;
+  $('#panel-sub').textContent = openCount < rows.length ? `${fr(openCount)} débloqué${openCount > 1 ? 's' : ''} sur ${fr(rows.length)}` : `${fr(rows.length)} commerce${rows.length > 1 ? 's' : ''}`;
   { const pl = TRADES[state.trade]?.plural; $('#panel-title').textContent = state.trade === 'all' || !pl ? 'Tes prospects' : pl[0].toUpperCase() + pl.slice(1); }
   if (!rows.length) { list.append(el('li', { class: 'empty', text: 'Rien avec ces filtres.' })); return; }
   for (const l of rows.slice(0, state.listLimit)) {
+    if (l._locked) { // the name never reaches the DOM for a locked shop
+      list.append(el('li', { class: 'locked' + (l.tier === 'social' ? ' social' : ''), onclick: () => lockedPaywall() },
+        el('i'), el('div', {}, el('b', { class: 'ghost-name', 'aria-hidden': 'true', text: '████████ ██████' }), el('small', { text: `${TRADES[l.trade]?.label || 'Commerce'} · à débloquer` })),
+        el('span', { class: 'more', text: '🔒' })));
+      continue;
+    }
     const st = pipeline[l.id]?.status, stLabel = st && store.STATUSES.find((s) => s.key === st)?.label;
     list.append(el('li', { class: (l.tier === 'social' ? 'social' : '') + (state.lead?.id === l.id ? ' sel' : ''), 'data-id': l.id, onclick: () => openLead(l, true) },
       el('i'),
@@ -326,7 +356,14 @@ function closeOverlays() { $$('.overlay').forEach((o) => { o.hidden = true; }); 
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) { const o = e.target.closest('.overlay'); o.hidden = true; if (o.id === 'demo') $('#demo-frame').src = 'about:blank'; } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
 
+function lockedPaywall() {
+  const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;
+  const max = limitFor('leadsPerCity', level);
+  openPaywall(`Tu as débloqué ${fr(Math.min(max, total))} commerces sur ${fr(total)} à ${state.data.name}.`, { minLevel: Math.min(3, level + 1) });
+}
+
 function openLead(lead, fly = false) {
+  if (lead._locked) return lockedPaywall();
   state.lead = lead; fog.setSelected(lead.id); sound.flip();
   if (!isDesktop()) $('#panel').dataset.open = 'false';
   if (fly) map.easeTo({ center: [lead.lon, lead.lat], zoom: Math.max(map.getZoom(), 14.5), duration: 700, offset: isDesktop() ? [-160, 0] : [0, -120] });
@@ -360,7 +397,7 @@ function renderLead() {
   $('#lead-google').href = 'https://www.google.com/search?q=' + encodeURIComponent(`${l.name} ${city}`);
   $('#author').value = store.getAuthor();
   const left = store.demosLeft();
-  $('#quota').textContent = left === Infinity ? 'Offre Pro : maquettes illimitées.' : `${left} maquette${left > 1 ? 's' : ''} gratuite${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`;
+  $('#quota').textContent = left === Infinity ? `Formule ${planById(store.getPlanId())?.name || ''} : maquettes illimitées.` : `${left} maquette${left > 1 ? 's' : ''} gratuite${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''} aujourd'hui.`;
 }
 
 /** live mode: domain check + reverse geocoding happen when the card opens */
@@ -392,7 +429,9 @@ const BUILD_STEPS = ['Nom et métier', 'Adresse et plan', 'Horaires d\'ouverture
 
 function demoUrlFor(l) {
   const url = new URL('demo.html', location.href);
-  url.hash = encodePayload(leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0));
+  const payload = leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0);
+  if (!store.can('noBadge')) payload.w = 1; // below Pro, the mock-up says which tool made it
+  url.hash = encodePayload(payload);
   return url.href;
 }
 
@@ -409,7 +448,7 @@ function demoReady(frame) {
 $('#btn-build').addEventListener('click', async () => {
   const l = state.lead;
   store.setAuthor($('#author').value);
-  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall('Tu as utilisé tes 3 maquettes du jour.'); }
+  if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(`Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
   store.countBuild(l.id);
   const t0 = performance.now();
   state.demoUrl = demoUrlFor(l);
@@ -436,7 +475,10 @@ $('#btn-build').addEventListener('click', async () => {
 // "Autre style": same shop, another palette / layout. The choice travels in the link (payload key v).
 $('#demo-restyle').addEventListener('click', async () => {
   const l = state.lead, frame = $('#demo-frame');
-  l._style = ((l._style || 0) + 1) % 6;
+  const next = (l._style || 0) + 1;
+  const maxStyles = limitFor('styles', store.planLevel());
+  if (next >= maxStyles) { l._style = 0; if (maxStyles < 6) openPaywall(`Ta formule donne ${maxStyles} styles par commerce. Les 6 sont dans la formule Pro.`, { minLevel: 2 }); }
+  else l._style = next % 6;
   state.demoUrl = demoUrlFor(l);
   $('#demo-open').href = state.demoUrl;
   frame.classList.remove('on');
@@ -465,8 +507,9 @@ function renderStatus() {
   box.replaceChildren(...store.STATUSES.map((s) => el('button', {
     class: 'chip', type: 'button', 'aria-pressed': String(cur === s.key), text: s.label,
     onclick: () => {
-      if (!store.isPro() && s.key !== 'todo' && s.key !== 'contacted') return openPaywall('Le suivi complet fait partie de l\'offre Pro.');
+      if (!store.can('fullPipeline') && s.key !== 'todo' && s.key !== 'contacted') return openPaywall('Le suivi complet (RDV, signé) commence à la formule Essentiel.', { feature: 'fullPipeline' });
       store.setStatus(state.lead, state.data.name, cur === s.key ? null : s.key); renderStatus(); renderList(); renderGoal();
+      if (s.key === 'won' && cur !== 'won') { $('.demo-side').dataset.expanded = 'true'; $('.after-yes').classList.add('hot'); toast('Signé, bravo. Il reste le devis, puis le vrai site à construire.'); }
     },
   })));
 }
@@ -488,14 +531,15 @@ function flatten(v) {
 }
 
 async function renderScripts() {
-  const tabs = $('#script-tabs'), body = $('#script-body'), pro = store.isPro();
+  const tabs = $('#script-tabs'), body = $('#script-body'), level = store.planLevel();
+  const lockedCh = (c) => (SCRIPT_LEVEL[c.key] ?? 2) > level;
   tabs.replaceChildren(...CHANNELS.map((c) => el('button', {
     type: 'button', role: 'tab', 'aria-selected': String(state.channel === c.key),
     onclick: () => { state.channel = c.key; renderScripts(); },
-  }, c.label, !c.free && !pro ? el('span', { class: 'lock', text: '🔒' }) : null)));
+  }, c.label, lockedCh(c) ? el('span', { class: 'lock', text: '🔒' }) : null)));
 
   const content = await loadContent(), l = state.lead, fam = TRADES[l.trade]?.tpl || 'atelier';
-  const ch = CHANNELS.find((c) => c.key === state.channel), locked = !ch.free && !pro;
+  const ch = CHANNELS.find((c) => c.key === state.channel), locked = lockedCh(ch);
   const vars = {
     commerce: l.name, prenom: store.getAuthor() || 'Prénom', ville: state.data.name, lien: state.demoUrl,
     prix: String(store.PRICE), domaine: l.domain || '', metier: (TRADES[l.trade]?.label || 'commerce').toLowerCase(),
@@ -507,9 +551,9 @@ async function renderScripts() {
   body.textContent = text || 'Script en cours d\'écriture.';
   body.classList.toggle('locked', locked);
   const copy = $('#script-copy');
-  copy.textContent = locked ? 'Débloquer avec l\'offre Pro' : 'Copier le script';
+  copy.textContent = locked ? 'Débloquer ce script' : 'Copier le script';
   copy.onclick = locked
-    ? () => openPaywall('Les scripts DM, e-mail, appel et objections font partie de l\'offre Pro.')
+    ? () => openPaywall(SCRIPT_LEVEL[ch.key] === 1 ? 'Le script DM Insta commence à la formule Essentiel.' : 'Les scripts e-mail, appel et objections sont dans la formule Pro.', { minLevel: SCRIPT_LEVEL[ch.key] ?? 2 })
     : async () => { try { await navigator.clipboard.writeText(text); toast('Script copié.'); } catch { toast('Copie impossible sur ce navigateur.'); } };
 }
 
@@ -534,11 +578,102 @@ $('#btn-share').addEventListener('click', async () => {
 });
 
 // ───────────────────────── Paywall, toggles, toast ─────────────────────────
-function openPaywall(title) { if (title) $('#pay-title').textContent = title; openOverlay('#paywall'); }
-$$('[data-open-paywall]').forEach((b) => b.addEventListener('click', () => openPaywall('L\'offre Pro ouvre bientôt.')));
+// ───────────────────────── Plans: pricing cards, paywall, gated tools ─────────────────────────
+const perkNode = (p) => el('li', { class: /^Tout /.test(p.text) ? 'inherit' : null }, el('span', {}, p.text, p.soon ? el('span', { class: 'soon', text: 'bientôt' }) : null));
+
+function renderPlans() {
+  const box = $('#plans'), current = store.getPlanId();
+  box.replaceChildren(...PLANS.map((p) => {
+    const save = savingPct(p);
+    return el('article', { class: 'plan' + (p.popular ? ' popular' : '') + (p.id === current ? ' current' : '') },
+      p.popular ? el('p', { class: 'tag', text: 'Le plus choisi' }) : null,
+      el('div', { class: 'plan-top' }, el('h3', { text: p.name }), el('span', { class: 'period', text: p.period })),
+      el('p', { class: 'price' }, priceLabel(p), el('small', { text: p.cycle })),
+      el('p', { class: 'permonth' }, p.months > 1 ? `soit ${perMonthLabel(p)} / mois ` : '', save ? el('b', { text: `· −${save} %` }) : null),
+      el('p', { class: 'pitch', text: p.pitch }),
+      el('ul', {}, ...p.perks.map(perkNode)),
+      el('button', { class: 'cta', type: 'button', text: p.id === current ? 'Ta formule actuelle' : `Choisir ${p.name}`, onclick: () => openPaywall(null, { planId: p.id }) }));
+  }));
+  $('#free-perks').textContent = FREE.perks.join(' · ');
+}
+
+const pay = { plan: 'm3', minLevel: 1 };
+
+/** title = why we are here · feature / minLevel = what is needed (greys out the plans that would not help) · planId = preselected */
+function openPaywall(title, { feature, minLevel, planId } = {}) {
+  pay.minLevel = minLevel || (feature ? FEATURES[feature] || 1 : 1);
+  const wanted = planById(planId) || (pay.minLevel > 1 ? planForLevel(pay.minLevel) : null) || PLANS.find((p) => p.popular) || PLANS[0];
+  pay.plan = wanted.level >= pay.minLevel ? wanted.id : planForLevel(pay.minLevel).id;
+  $('#pay-title').textContent = title || 'Choisis ta formule';
+  renderPaywall();
+  openOverlay('#paywall');
+}
+
+function renderPaywall() {
+  const chosen = planById(pay.plan);
+  $('#pay-plans').replaceChildren(...PLANS.map((p) => {
+    const off = p.level < pay.minLevel, save = savingPct(p);
+    return el('button', {
+      class: 'pay-plan', type: 'button', role: 'radio', 'aria-checked': String(p.id === pay.plan), 'aria-disabled': off ? 'true' : null,
+      title: off ? 'Cette formule ne comprend pas la fonction demandée' : null,
+      onclick: () => { if (off) return; pay.plan = p.id; renderPaywall(); },
+    }, save ? el('span', { class: 'pp-save', text: `−${save} %` }) : null,
+      el('b', { text: p.name }), el('span', { class: 'pp-period', text: p.period }),
+      el('span', { class: 'pp-price', text: priceLabel(p) }), el('span', { class: 'pp-month', text: p.months > 1 ? `${perMonthLabel(p)} / mois` : p.cycle.split(',')[0] }));
+  }));
+  $('#pay-perks').replaceChildren(...chosen.perks.map(perkNode));
+  $('#pay-go').textContent = chosen.checkoutUrl ? `Continuer · ${chosen.name} ${priceLabel(chosen)}` : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
+  $('#waitlist input').hidden = !!chosen.checkoutUrl; $('#waitlist input').required = !chosen.checkoutUrl;
+  $('#pay-fine').textContent = chosen.checkoutUrl
+    ? 'Paiement sécurisé sur la page de notre prestataire. Remboursé sous 7 jours, sans condition.'
+    : 'Prototype : le paiement n\'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l\'ouverture.';
+}
+
+$$('[data-open-paywall]').forEach((b) => b.addEventListener('click', () => openPaywall()));
 $('#waitlist').addEventListener('submit', (e) => {
-  e.preventDefault(); store.saveWaitlist(e.target.querySelector('input').value);
-  closeOverlays(); toast('C\'est noté. On te prévient à l\'ouverture.');
+  e.preventDefault();
+  const chosen = planById(pay.plan);
+  if (chosen.checkoutUrl) { location.href = chosen.checkoutUrl; return; }
+  store.saveWaitlist(e.target.querySelector('input').value, chosen.id);
+  closeOverlays(); toast(`C'est noté pour la formule ${chosen.name}. On te prévient à l'ouverture.`);
+});
+
+function refreshLocks() {
+  for (const [id, feature, label] of [['#btn-csv', 'csvExport', 'Exporter en CSV'], ['#btn-kit', 'legalKit', 'Kit légal'], ['#btn-docs', 'invoicing', 'Devis / facture']]) {
+    const b = $(id); b.replaceChildren(label, store.can(feature) ? '' : el('span', { class: 'lock', text: '🔒' }));
+  }
+}
+
+// CSV of the prospects currently listed (filters applied). OSM data stays ODbL: the file says so.
+const csvCell = (v) => { const s = v == null ? '' : String(v); return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+$('#btn-csv').addEventListener('click', () => {
+  if (!store.can('csvExport')) return openPaywall('L\'export CSV de tes prospects est dans la formule Pro.', { feature: 'csvExport' });
+  const rows = state.data.leads.filter((l) => visible(l) && !l._locked), city = state.data.name;
+  const head = ['Commerce', 'Métier', 'Niveau', 'Adresse', 'Téléphone', 'Horaires', 'E-mail', 'Instagram', 'Facebook', 'Domaine libre suggéré', 'Vérifier sur Google', 'Source'];
+  const lines = rows.map((l) => [l.name, TRADES[l.trade]?.label, TIER_LABEL[l.tier], l.addr, l.phone, l.hours, l.email, l.social?.instagram, l.social?.facebook, l.domain,
+    'https://www.google.com/search?q=' + encodeURIComponent(`${l.name} ${city}`), '© contributeurs OpenStreetMap (ODbL)'].map(csvCell).join(';'));
+  const blob = new Blob(['\ufeff' + [head.join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `${BRAND.slug}-${state.data.slug || state.data.insee}-prospects.csv` });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast(`${fr(rows.length)} prospects exportés. Pense à vérifier chaque commerce avant de le contacter.`);
+});
+
+// quotes and invoices: anyone can fill the form and see the sheet, printing it is a Pro feature
+initDocs({ openPaywall });
+$('#btn-docs').addEventListener('click', () => openDocs('devis', null));
+$('#demo-quote').addEventListener('click', () => { $('#demo').hidden = true; $('#demo-frame').src = 'about:blank'; openDocs('devis', state.lead); });
+
+$('#btn-kit').addEventListener('click', async () => {
+  if (!store.can('legalKit')) return openPaywall('Le kit légal (statut, devis, facture, mentions) est dans la formule Pro.', { feature: 'legalKit' });
+  const list = $('#kit-list');
+  if (!list.childNodes.length) {
+    try {
+      const { STARTER } = await import('./content/starter.mjs');
+      list.replaceChildren(...STARTER.map((it) => el('li', {}, el('h3', { text: it.title }), el('p', { text: it.body }),
+        it.link ? el('a', { class: 'link', href: it.link, target: '_blank', rel: 'noopener noreferrer', text: (it.linkLabel || 'Source officielle') + ' ↗' }) : null)));
+    } catch { list.replaceChildren(el('li', {}, el('p', { text: 'Le kit n\'a pas pu être chargé.' }))); }
+  }
+  openOverlay('#kit');
 });
 
 $('#btn-rec').addEventListener('click', (e) => {
@@ -556,5 +691,8 @@ let toastT = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3600); }
 
 // dev switch for demos: ?pro=1 / ?pro=0
-const proParam = new URLSearchParams(location.search).get('pro');
-if (proParam != null) store.setPro(proParam === '1');
+// try a plan without paying (prototype only): ?plan=free | m1 | m3 | y1   (?pro=1 still means Essentiel)
+const qs = new URLSearchParams(location.search);
+if (qs.get('plan')) store.setPlanId(qs.get('plan'));
+else if (qs.get('pro') != null) store.setPlanId(qs.get('pro') === '1' ? 'm1' : 'free');
+renderPlans(); refreshLocks();

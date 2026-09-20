@@ -82,7 +82,7 @@ function buildModel(p) {
     lenScale: len <= 14 ? 1 : len <= 24 ? 0.86 : len <= 38 ? 0.72 : len <= 50 ? 0.6 : 0.5,
     addr, coords, itinerary: itineraryUrl(name, addr, coords),
     phone: cleanPhone(p.p), email: cleanEmail(p.e), ig: cleanSocial(p.ig, 'ig'), fb: cleanSocial(p.fb, 'fb'),
-    cuisine: cuisineLabel(p.cu), by: cleanFirstName(p.by), domain: cleanDomain(p.d),
+    cuisine: cuisineLabel(p.cu), by: cleanFirstName(p.by), domain: cleanDomain(p.d), badge: p.w === 1,
     hoursRaw, hours: parseOpeningHours(hoursRaw),
     // Opening hours are wall-clock time at the shop. Metropolitan France -> Europe/Paris; elsewhere (DROM...) -> viewer's clock.
     timeZone: !coords || (coords.lat > 41 && coords.lat < 51.5 && coords.lon > -5.5 && coords.lon < 10) ? 'Europe/Paris' : undefined,

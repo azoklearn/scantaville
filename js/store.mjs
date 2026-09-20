@@ -1,4 +1,6 @@
 // Everything the MVP remembers lives in localStorage (no account, no backend).
+import { FEATURES, planById, limitFor } from './plans.mjs';
+
 const K = 'scantaville.';
 const read = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch { /* private mode */ } };
@@ -15,8 +17,13 @@ export const STATUSES = [
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const isPro = () => read('pro', false) === true;
-export const setPro = (v) => write('pro', !!v);
+// The plan lives in localStorage for the prototype. In production it comes from the payment provider
+// (Whop / Stripe webhook -> signed session): never trust the browser for this.
+export const getPlanId = () => { const id = read('plan', 'free'); return planById(id) ? id : 'free'; };
+export const setPlanId = (id) => write('plan', planById(id) ? id : 'free');
+export const planLevel = () => planById(getPlanId())?.level || 0;
+export const can = (feature) => planLevel() >= (FEATURES[feature] || 1);
+export const isPro = () => planLevel() >= 1;
 
 export const getAuthor = () => read('author', '');
 export const setAuthor = (v) => write('author', String(v || '').trim().slice(0, 24));
@@ -26,9 +33,10 @@ export function demoQuota() {
   const q = read('quota', { day: today(), ids: [] });
   return q.day === today() ? q : { day: today(), ids: [] };
 }
-export function canBuild(id) { const q = demoQuota(); return isPro() || q.ids.includes(id) || q.ids.length < FREE_DEMOS_PER_DAY; }
+export const demoLimit = () => limitFor('demosPerDay', planLevel());
+export function canBuild(id) { const q = demoQuota(); return q.ids.includes(id) || q.ids.length < demoLimit(); }
 export function countBuild(id) { const q = demoQuota(); if (!q.ids.includes(id)) q.ids.push(id); write('quota', q); return q; }
-export function demosLeft() { return isPro() ? Infinity : Math.max(0, FREE_DEMOS_PER_DAY - demoQuota().ids.length); }
+export function demosLeft() { const max = demoLimit(); return max === Infinity ? Infinity : Math.max(0, max - demoQuota().ids.length); }
 
 export const getPipeline = () => read('pipeline', {});
 export function setStatus(lead, city, status) {
@@ -42,9 +50,16 @@ export const wonCount = () => Object.values(getPipeline()).filter((x) => x.statu
 export const getHidden = () => read('hidden', []);
 export function hideLead(id) { const h = getHidden(); if (!h.includes(id)) h.push(id); write('hidden', h); }
 
+// quotes and invoices: the seller block is remembered, numbers follow one series per type and year
+export const getSeller = () => read('seller', {});
+export const setSeller = (s) => write('seller', s || {});
+export const peekDocSeq = (type, year) => (read('docseq', {})[type]?.[year] || 0) + 1;
+export function bumpDocSeq(type, year, seq) { const c = read('docseq', {}); c[type] = c[type] || {}; c[type][year] = Math.max(c[type][year] || 0, seq); write('docseq', c); }
+export const setCurrentDoc = (d) => write('doc.current', d); // read by doc.html (same origin), never put in a URL
+
 export const getGoal = () => read('goal', 15);
 export const setGoal = (n) => write('goal', n);
-export const saveWaitlist = (email) => write('waitlist', { email, ts: Date.now() });
+export const saveWaitlist = (email, plan) => write('waitlist', { email, plan, ts: Date.now() });
 
 export function cacheCity(insee, data) { try { sessionStorage.setItem(K + 'city.' + insee, JSON.stringify(data)); } catch { /* too big: skip */ } }
 export function cachedCity(insee) { try { const v = sessionStorage.getItem(K + 'city.' + insee); return v ? JSON.parse(v) : null; } catch { return null; } }

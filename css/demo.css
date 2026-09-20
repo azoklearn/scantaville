@@ -750,3 +750,6 @@ html { scrollbar-width: thin; }
 [data-tpl="atelier"][data-look="b"] .hero .cross { filter: invert(1); }
 [data-tpl="atelier"][data-look="b"] .trade-badge--corner { border-color: var(--bg); }
 [data-tpl="atelier"][data-look="b"] .sig { background: var(--bg); }
+
+/* free plan: the mock-up says which tool made it */
+.ft-made { margin-top: 14px; font-size: 12px; font-weight: 600; letter-spacing: .02em; opacity: .85; }

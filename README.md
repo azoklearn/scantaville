@@ -11,7 +11,7 @@ Prototype statique, zéro backend, zéro API payante, zéro IA à l'exécution.
 node scripts/serve.mjs 5180
 ```
 
-Puis http://localhost:5180 · lien direct vers une ville : `/?v=37261` (code INSEE) · simuler l'offre payante : `/?pro=1` (et `/?pro=0`).
+Puis http://localhost:5180 · lien direct vers une ville : `/?v=37261` (code INSEE) · essayer une formule sans payer : `/?plan=free`, `m1`, `m3` ou `y1`.
 
 ## Le produit en 20 secondes (la vidéo TikTok)
 
@@ -25,7 +25,9 @@ Puis http://localhost:5180 · lien direct vers une ville : `/?v=37261` (code INS
 | Fichier | Rôle |
 | --- | --- |
 | `index.html`, `css/app.css`, `js/app.mjs` | L'app : recherche de ville, scan, liste, fiche, maquette, scripts, carte à partager, paywall simulé |
-| `js/brand.mjs` | **Le nom du produit, à un seul endroit** (logo, titre, carte à partager, domaine) |
+| `doc.html`, `css/doc.css`, `js/doc/*`, `js/docs-ui.mjs` | **Devis et factures** : formulaire dans l'app, feuille A4 imprimable en PDF, mentions obligatoires (EI, SIRET, art. 293 B, pénalités, 40 €, escompte), numérotation continue par série |
+| `js/plans.mjs` | **Les 3 formules** (prix, durée, avantages, lien de paiement) et la table « fonction → formule minimale » |
+| `js/brand.mjs` | **Le nom du produit, à un seul endroit** (logo, titre, carte à partager, domaine) + l'upsell partenaire Movento (`UPSELL`, liens suivis par `utm_campaign`) |
 | `js/fog.mjs` | Brume + pins (2 canvas au-dessus de MapLibre) |
 | `js/card.mjs` | Carte 9:16 (constellation de la ville) en PNG, côté client |
 | `js/city.mjs` | Autocomplete (geo.api.gouv.fr), chargement d'une ville pré-calculée ou scan en direct |
@@ -60,7 +62,7 @@ Hébergement statique gratuit (Cloudflare Pages / Netlify / Vercel) + nom de dom
 
 1. **Données** : ne jamais interroger Overpass par visiteur. Pré-calculer toutes les communes chaque semaine depuis un extrait Geofabrik (GitHub Action), enrichir avec Overture Places et SIRENE.
 2. **Liens courts** pour les maquettes (`/d/abc123`, un Worker + KV gratuit) avec « le patron a ouvert ta maquette », expiration à 30 jours.
-3. **Paiement** (Stripe ou Whop) + compte. Le paywall porte sur l'atelier, pas sur les données (ODbL).
+3. **Paiement** : coller le lien de paiement de chaque formule (Whop, Stripe Payment Link) dans `checkoutUrl` de `js/plans.mjs`. Tant qu'il est vide, le bouton récolte un e-mail. La formule active est lue dans le navigateur pour le prototype : en production elle doit venir du prestataire de paiement (webhook + session signée), sinon n'importe qui peut se la donner. Le paywall porte sur les outils, pas sur les données (ODbL).
 4. **Signalements partagés** (« il a déjà un site ») : c'est le seul vrai fossé défensif, une base vérifiée par les utilisateurs.
 5. **Conformité** : page de retrait pour les commerçants, mentions RGPD (art. 14), CGU (interdiction de réserver le domaine d'un commerçant à son nom, pas d'envoi automatisé), vérification INPI du nom.
 
