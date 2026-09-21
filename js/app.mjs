@@ -672,7 +672,7 @@ function renderPaywall() {
   $('#pay-go').textContent = chosen.checkoutUrl ? `Continuer · ${chosen.name} ${priceLabel(chosen)}` : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
   $('#waitlist input').hidden = !!chosen.checkoutUrl; $('#waitlist input').required = !chosen.checkoutUrl;
   $('#pay-fine').textContent = chosen.checkoutUrl
-    ? 'Paiement sécurisé sur la page de notre prestataire. Remboursé sous 7 jours, sans condition.'
+    ? 'Paiement sécurisé sur la page de notre prestataire.'
     : 'Prototype : le paiement n\'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l\'ouverture.';
 }
 
