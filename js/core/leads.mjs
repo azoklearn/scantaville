@@ -91,9 +91,17 @@ function isChainName(name) {
 
 export function stripAccents(s) { return String(s).normalize('NFD').replace(/\p{M}/gu, ''); }
 
+// City ids: a French INSEE code ("37261") or, for any other country, the OSM boundary relation ("osm-58274").
+// An Overpass area id is 3 600 000 000 + the relation id.
+function areaOf(cityId) {
+  const m = /^osm-(\d{1,12})$/.exec(String(cityId));
+  if (m) return `area(${3600000000 + Number(m[1])})->.a;`;
+  return `area["ref:INSEE"="${String(cityId).replace(/[^0-9AB]/gi, '')}"]["boundary"="administrative"]->.a;`;
+}
+
 export function buildOverpassQuery(insee) {
   return `[out:json][timeout:90];
-area["ref:INSEE"="${insee}"]["boundary"="administrative"]->.a;
+${areaOf(insee)}
 (
   nwr["name"]["shop"](area.a);
   nwr["name"]["amenity"~"^(restaurant|bar|pub|cafe|fast_food|ice_cream)$"](area.a);
@@ -238,7 +246,8 @@ export function slugify(s) {
 }
 
 /** Domain names this shop would most plausibly own. First .fr entry is also the "domain to suggest". */
-export function domainCandidates(name, city, trade) {
+export function domainCandidates(name, city, trade, tld = 'fr') {
+  if (!/^[a-z]{2,6}$/.test(tld)) tld = 'fr';
   const base = slugify(name);
   if (!base || base.length < 3) return [];
   const citySlug = slugify(city || '');
@@ -252,7 +261,7 @@ export function domainCandidates(name, city, trade) {
   const out = [];
   for (const s of stems) {
     if (s.length < 4 || s.length > 50) continue;
-    out.push(`${s}.fr`, `${s}.com`);
+    out.push(`${s}.${tld}`, `${s}.com`);
   }
   return out.slice(0, 14);
 }
@@ -274,12 +283,13 @@ export async function isDomainRegistered(domain, { signal } = {}) {
  * { tier, domain, taken[] }  domain = a free .fr we can suggest "à réserver au nom du commerçant".
  */
 export async function verifyLead(lead, city, opts = {}) {
-  const cands = domainCandidates(lead.name, city, lead.trade);
+  const tld = opts.tld || 'fr';
+  const cands = domainCandidates(lead.name, city, lead.trade, tld);
   if (!cands.length) return { tier: lead.tier === 'social' ? 'social' : 'silver', domain: null, taken: [] };
   const results = await mapLimit(cands, opts.concurrency || 6, (d) => isDomainRegistered(d, opts));
   const taken = cands.filter((_, i) => results[i] === true);
   const unknown = results.filter((r) => r === null).length;
-  const free = cands.filter((d, i) => results[i] === false && d.endsWith('.fr'));
+  const free = cands.filter((d, i) => results[i] === false && d.endsWith('.' + tld));
   if (taken.length) return { tier: 'silver', domain: null, taken };
   if (unknown > cands.length / 2) return { tier: lead.tier === 'social' ? 'social' : 'pending', domain: null, taken };
   return { tier: lead.tier === 'social' ? 'social' : 'gold', domain: free[0] || null, taken };

@@ -1,7 +1,7 @@
 import { TRADES, verifyLead, reverseAddress } from './core/leads.mjs';
 import { encodePayload, leadToPayload } from './core/payload.mjs';
 import { FogLayer } from './fog.mjs';
-import { loadIndex, searchCities, loadCity, communeContour, cityByInsee, rankOf } from './city.mjs';
+import { loadIndex, searchCities, loadCity, communeContour, cityByInsee, rankOf, COUNTRIES, countryOf } from './city.mjs';
 import { drawCard, cardBlob } from './card.mjs';
 import * as sound from './sound.mjs';
 import * as store from './store.mjs';
@@ -122,7 +122,11 @@ loadIndex().then(async (index) => {
 });
 
 // search box
-const input = $('#city'), suggest = $('#suggest');
+const input = $('#city'), suggest = $('#suggest'), countrySel = $('#country');
+countrySel.replaceChildren(...COUNTRIES.map((c) => el('option', { value: c.code, text: `${c.flag} ${c.code}`, title: c.name })));
+try { countrySel.value = localStorage.getItem('scantaville.country') || 'FR'; } catch { /* private mode */ }
+if (!countrySel.value) countrySel.value = 'FR';
+countrySel.addEventListener('change', () => { try { localStorage.setItem('scantaville.country', countrySel.value); } catch { /* ignore */ } results = []; renderSuggest(); input.value = ''; input.placeholder = countrySel.value === 'FR' ? 'Tape ta ville…' : `Ta ville en ${countryOf(countrySel.value).name}…`; input.focus(); });
 let results = [], active = -1, debounce = 0;
 
 function renderSuggest() {
@@ -131,7 +135,7 @@ function renderSuggest() {
   results.forEach((c, i) => {
     const pre = state.index.cities?.some((x) => x.insee === c.insee);
     suggest.append(el('li', { role: 'option', 'aria-selected': String(i === active), onmousedown: (e) => { e.preventDefault(); choose(c); } },
-      el('b', { text: c.name }), el('small', {}, `${c.dept} · ${fr(c.population)} hab.`, pre ? el('span', { class: 'pre', text: ' · pré-scannée' }) : null)));
+      el('b', { text: c.name }), el('small', {}, c.population ? `${c.dept} · ${fr(c.population)} hab.` : c.dept, pre ? el('span', { class: 'pre', text: ' · pré-scannée' }) : null)));
   });
 }
 function choose(c) { input.value = c.name; results = []; renderSuggest(); scan(c); }
@@ -140,7 +144,7 @@ input.addEventListener('input', () => {
   clearTimeout(debounce);
   const q = input.value.trim();
   if (q.length < 2) { results = []; renderSuggest(); return; }
-  debounce = setTimeout(async () => { results = await searchCities(q); active = results.length ? 0 : -1; renderSuggest(); }, 160);
+  debounce = setTimeout(async () => { results = await searchCities(q, countrySel.value); active = results.length ? 0 : -1; renderSuggest(); }, 160);
 });
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); submitSearch(); return; } // do not rely on implicit form submission
@@ -157,7 +161,7 @@ async function submitSearch() {
   if (results[active]) return choose(results[active]);
   const q = input.value.trim();
   if (q.length < 2) return input.focus();
-  const found = await searchCities(q);
+  const found = await searchCities(q, countrySel.value);
   if (found[0]) choose(found[0]); else toast('Ville introuvable. Essaie avec le nom exact de la commune.');
 }
 $('#search').addEventListener('submit', (e) => { e.preventDefault(); submitSearch(); });
@@ -444,7 +448,7 @@ async function enrichLead(l) {
   const jobs = [];
   if (l.tier === 'pending' && !l._checking) {
     l._checking = true; renderLead();
-    jobs.push(verifyLead(l, state.data.name).then((v) => {
+    jobs.push(verifyLead(l, state.data.name, { tld: countryOf(state.data.country).tld }).then((v) => {
       l._checking = false; l.tier = v.tier === 'pending' ? 'gold' : v.tier; l.domain = v.domain; l._taken = v.taken;
     }));
   }
