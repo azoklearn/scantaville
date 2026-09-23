@@ -244,8 +244,7 @@ function landed() {
   }
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
-  if (updateGate()) setTimeout(askAccount, 900); // let the number land, then ask
-  else if (store.planLevel() === 0) setTimeout(lockedPaywall, 1100); // no plan = nothing to open: show the offer
+  setTimeout(openQuiz, 900); // let the number land, then the quiz; account and plans come after its result
 }
 
 /** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
@@ -382,6 +381,42 @@ function openOverlay(id) { $(id).hidden = false; }
 function closeOverlays() { $$('.overlay').forEach((o) => { o.hidden = true; }); $('#demo-frame').src = 'about:blank'; }
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) { const o = e.target.closest('.overlay'); o.hidden = true; if (o.id === 'demo') $('#demo-frame').src = 'about:blank'; } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
+
+// ───────────────────────── Quiz after the scan ─────────────────────────
+const SITE_PRICE = 400, CONTACTS_PER_SALE = 50, WORK_DAYS = 22;
+const quiz = { hours: 0, perDay: 0, done: false };
+function openQuiz() {
+  const { data } = state; if (!data) return;
+  quiz.hours = quiz.perDay = 0; quiz.done = false;
+  $('#quiz-city').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads); $('#quiz-city2').textContent = data.name;
+  $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
+  openOverlay('#quiz');
+}
+function quizResult() {
+  const total = state.data.stats.leads;
+  // a day is capped by the time available: ~10 minutes per shop, hours spread over 5 days
+  const perDay = Math.min(quiz.perDay, Math.max(1, Math.round((quiz.hours / 5) * 6)));
+  const contacts = Math.min(total, perDay * WORK_DAYS);
+  const sales = Math.max(1, Math.round(contacts / CONTACTS_PER_SALE));
+  $('#quiz-euros').textContent = fr(sales * SITE_PRICE) + ' €';
+  $('#quiz-contacts').textContent = fr(contacts); $('#quiz-sales').textContent = fr(sales); $('#quiz-left').textContent = fr(Math.max(0, total - contacts));
+  track('quiz', { hours: quiz.hours, perDay: quiz.perDay });
+  $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '2'; });
+}
+$$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  quiz[box.dataset.key] = Number(b.dataset.v);
+  if (box.dataset.key === 'hours') $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; });
+  else quizResult();
+}));
+/** after the result: account, then plans (or straight to the shops for a subscriber) */
+function afterQuiz() {
+  quiz.done = true; $('#quiz').hidden = true;
+  if (updateGate()) askAccount();
+  else if (store.planLevel() === 0) lockedPaywall();
+}
+$('#quiz-go').addEventListener('click', afterQuiz);
+for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done) afterQuiz(); });
 
 function lockedPaywall() {
   const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;
@@ -765,7 +800,7 @@ if (supa.enabled) {
     if (error) return toast(error);
     form.elements.password.value = '';
     track(form.dataset.mode === 'signup' ? 'signup' : 'login');
-    setTimeout(() => { if (state.data && store.planLevel() === 0 && document.body.dataset.state === 'scan') lockedPaywall(); }, 1600); // account created, still no plan
+    setTimeout(() => { if (state.data && quiz.done && store.planLevel() === 0 && document.body.dataset.state === 'scan') lockedPaywall(); }, 1600); // account created, still no plan
     closeOverlays(); toast(form.dataset.mode === 'signup' ? 'Compte créé. Voici tes commerces.' : 'Connecté.');
   });
   $('#gate-btn').addEventListener('click', () => askAccount());

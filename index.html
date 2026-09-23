@@ -278,6 +278,47 @@
   </div>
 
   <!-- ───────── Account (only when Supabase is configured) ───────── -->
+  <!-- ───────── Quiz after the scan: time available, contacts per day -> what the city could bring ───────── -->
+  <div id="quiz" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <article class="paycard quizcard" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <p class="kicker"><i class="dot"></i> <span id="quiz-city"></span></p>
+      <h2 id="quiz-title"><b id="quiz-count" class="accent"></b> commerces sans site web.</h2>
+      <div id="quiz-steps">
+        <section class="quiz-step" data-step="0">
+          <p class="quiz-q">Combien de temps as-tu par semaine pour ça ?</p>
+          <div class="quiz-opts" data-key="hours">
+            <button type="button" data-v="2">2 h<small>le soir, de temps en temps</small></button>
+            <button type="button" data-v="5">5 h<small>quelques soirs</small></button>
+            <button type="button" data-v="10">10 h<small>les week-ends</small></button>
+            <button type="button" data-v="20">20 h et +<small>à fond</small></button>
+          </div>
+        </section>
+        <section class="quiz-step" data-step="1" hidden>
+          <p class="quiz-q">Combien de commerces peux-tu contacter par jour ?</p>
+          <div class="quiz-opts" data-key="perDay">
+            <button type="button" data-v="2">2<small>en passant</small></button>
+            <button type="button" data-v="5">5<small>un petit tour</small></button>
+            <button type="button" data-v="10">10<small>une vraie tournée</small></button>
+            <button type="button" data-v="20">20<small>tous les jours</small></button>
+          </div>
+        </section>
+        <section class="quiz-step quiz-result" data-step="2" hidden>
+          <p class="quiz-q">À ce rythme, sur un mois :</p>
+          <p class="quiz-big"><b id="quiz-euros"></b><span>par mois, à 400 € le site</span></p>
+          <ul class="quiz-facts">
+            <li><b id="quiz-contacts"></b> commerces contactés</li>
+            <li><b id="quiz-sales"></b> site(s) vendu(s), en comptant 1 oui pour 50 contacts</li>
+            <li>Il t'en reste <b id="quiz-left"></b> à contacter à <span id="quiz-city2"></span></li>
+          </ul>
+          <button id="quiz-go" class="cta" type="button">Voir les commerces</button>
+          <p class="fine">Estimation illustrative, pas une promesse : ça dépend de ton effort, de ta ville et de ta façon de présenter. 400 € est un prix conseillé pour un site vitrine.</p>
+        </section>
+      </div>
+    </article>
+  </div>
+
   <div id="auth" class="overlay" hidden>
     <div class="overlay-bg" data-close></div>
     <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="auth-title">
