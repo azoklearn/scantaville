@@ -364,7 +364,7 @@ $('#panel-handle').addEventListener('click', () => {
 function renderGoal() {
   const n = store.getGoal(), range = $('#goal-range');
   range.value = n; $('#goal-n').textContent = n;
-  const weeks = Math.ceil(50 / n);
+  const weeks = Math.ceil(15 / n);
   $('#goal-weeks').textContent = weeks <= 1 ? '~1 semaine' : `~${weeks} semaines`;
   const won = store.wonCount(), wonEl = $('#goal-won');
   wonEl.hidden = !won;
@@ -383,7 +383,7 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
 
 // ───────────────────────── Quiz after the scan ─────────────────────────
-const CONTACTS_PER_SALE = 50, WORK_DAYS = 22;
+const CONTACTS_PER_SALE = 15, WORK_DAYS = 22;
 const quiz = { hours: 0, perDay: 0, done: false };
 function openQuiz() {
   const { data } = state; if (!data) return;

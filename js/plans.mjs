@@ -20,7 +20,7 @@ export const PLANS = [
   {
     id: 'm3', level: 2, name: 'Pro', period: '3 mois', cycle: 'tous les 3 mois',
     price: 29.9, months: 3, checkoutUrl: 'https://whop.com/checkout/plan_m05UMVsdrVkG9/', popular: true,
-    pitch: 'Le temps qu’il faut pour signer un premier client : compte ~50 contacts.',
+    pitch: 'Le temps qu’il faut pour signer un premier client : compte ~15 contacts.',
     perks: [
       { text: 'Tout Essentiel' },
       { text: '100 commerces débloqués par ville' },
