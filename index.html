@@ -305,15 +305,22 @@
           </div>
         </section>
         <section class="quiz-step quiz-result" data-step="2" hidden>
+          <p class="quiz-q">Ton prix pour un site vitrine</p>
+          <div class="quiz-price">
+            <b id="quiz-price-val">400 €</b>
+            <input id="quiz-price" type="range" min="200" max="1500" step="50" value="400" aria-label="Prix d'un site">
+            <div class="quiz-price-x"><span>200 €</span><span>1 500 €</span></div>
+          </div>
           <p class="quiz-q">À ce rythme, sur un mois :</p>
-          <p class="quiz-big"><b id="quiz-euros"></b><span>par mois, à 400 € le site</span></p>
+          <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, à <span id="quiz-price-echo">400 €</span> le site</span></p>
+          <div class="quiz-coins" aria-hidden="true"></div>
           <ul class="quiz-facts">
             <li><b id="quiz-contacts"></b> commerces contactés</li>
             <li><b id="quiz-sales"></b> site(s) vendu(s), en comptant 1 oui pour 50 contacts</li>
             <li>Il t'en reste <b id="quiz-left"></b> à contacter à <span id="quiz-city2"></span></li>
           </ul>
           <button id="quiz-go" class="cta" type="button">Voir les commerces</button>
-          <p class="fine">Estimation illustrative, pas une promesse : ça dépend de ton effort, de ta ville et de ta façon de présenter. 400 € est un prix conseillé pour un site vitrine.</p>
+          <p class="fine">Estimation illustrative, pas une promesse : ça dépend de ton effort, de ta ville et de ta façon de présenter.</p>
         </section>
       </div>
     </article>

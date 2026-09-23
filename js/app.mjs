@@ -383,26 +383,51 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
 
 // ───────────────────────── Quiz after the scan ─────────────────────────
-const SITE_PRICE = 400, CONTACTS_PER_SALE = 50, WORK_DAYS = 22;
+const CONTACTS_PER_SALE = 50, WORK_DAYS = 22;
 const quiz = { hours: 0, perDay: 0, done: false };
 function openQuiz() {
   const { data } = state; if (!data) return;
-  quiz.hours = quiz.perDay = 0; quiz.done = false;
+  quiz.hours = quiz.perDay = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €'; $('#quiz-price').value = 400;
   $('#quiz-city').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads); $('#quiz-city2').textContent = data.name;
   $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
   openOverlay('#quiz');
 }
+let quizCalc = null, countRaf = 0;
 function quizResult() {
   const total = state.data.stats.leads;
   // a day is capped by the time available: ~10 minutes per shop, hours spread over 5 days
   const perDay = Math.min(quiz.perDay, Math.max(1, Math.round((quiz.hours / 5) * 6)));
   const contacts = Math.min(total, perDay * WORK_DAYS);
   const sales = Math.max(1, Math.round(contacts / CONTACTS_PER_SALE));
-  $('#quiz-euros').textContent = fr(sales * SITE_PRICE) + ' €';
+  quizCalc = { contacts, sales, total };
   $('#quiz-contacts').textContent = fr(contacts); $('#quiz-sales').textContent = fr(sales); $('#quiz-left').textContent = fr(Math.max(0, total - contacts));
   track('quiz', { hours: quiz.hours, perDay: quiz.perDay });
-  $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '2'; });
+  const step = $('.quiz-step[data-step="2"]');
+  $$('.quiz-step').forEach((x) => { x.hidden = x.dataset.step !== '2'; });
+  // restart the staggered entrance each time the result shows
+  for (const n of $$('.quiz-facts li, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
+  showEuros(true);
 }
+/** the big number counts up to the total (that is the TikTok beat); the slider then re-counts from the current value */
+function showEuros(withCoins) {
+  const price = Number($('#quiz-price').value), target = quizCalc.sales * price, el = $('#quiz-euros');
+  $('#quiz-price-val').textContent = fr(price) + ' €'; $('#quiz-price-echo').textContent = fr(price) + ' €';
+  cancelAnimationFrame(countRaf);
+  const from = Number(el.dataset.v || 0), t0 = performance.now(), dur = withCoins ? 1100 : 350;
+  const tick = (now) => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fr(Math.round(from + (target - from) * e)) + ' €';
+    if (k < 1) countRaf = requestAnimationFrame(tick); else { el.dataset.v = target; el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 200); }
+  };
+  countRaf = requestAnimationFrame(tick);
+  if (withCoins) rainCoins(Math.min(28, 6 + quizCalc.sales * 4));
+}
+function rainCoins(n) {
+  const box = $('.quiz-coins'); box.replaceChildren();
+  for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.style.left = (4 + Math.random() * 92) + '%'; c.style.animationDelay = (Math.random() * .9) + 's'; c.style.width = c.style.height = (12 + Math.random() * 12) + 'px'; box.append(c); }
+  sound.landed();
+}
+$('#quiz-price').addEventListener('input', () => { if (quizCalc) showEuros(false); });
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   quiz[box.dataset.key] = Number(b.dataset.v);

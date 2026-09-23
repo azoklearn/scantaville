@@ -387,6 +387,20 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .quiz-facts { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; font-size: 14.5px; color: var(--ink-2); }
 .quiz-facts li { padding: 10px 12px; border-radius: 10px; background: var(--bg-2); } .quiz-facts b { color: var(--ink); }
 .quiz-result .cta { width: 100%; }
+.quiz-price { position: relative; margin: 0 0 18px; padding: 14px 16px 10px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line); }
+.quiz-price b { display: block; font: 800 24px/1 var(--display); letter-spacing: -.03em; color: var(--ink); margin-bottom: 8px; }
+.quiz-price input { width: 100%; accent-color: var(--blue); cursor: pointer; }
+.quiz-price-x { display: flex; justify-content: space-between; font: 400 10.5px var(--mono); color: var(--muted); margin-top: 2px; }
+.quiz-big { position: relative; }
+.quiz-big b { font-variant-numeric: tabular-nums; transition: transform .18s var(--ease); }
+.quiz-big b.pop { transform: scale(1.06); }
+.quiz-step.quiz-result .quiz-facts li { opacity: 0; transform: translateY(8px); animation: rise .5s var(--ease) forwards; }
+.quiz-step.quiz-result .quiz-facts li:nth-child(1) { animation-delay: .9s; } .quiz-step.quiz-result .quiz-facts li:nth-child(2) { animation-delay: 1.05s; } .quiz-step.quiz-result .quiz-facts li:nth-child(3) { animation-delay: 1.2s; }
+.quiz-step.quiz-result .cta { opacity: 0; animation: rise .5s 1.35s var(--ease) forwards; }
+.quiz-coins { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 24px; }
+.quiz-coins i { position: absolute; top: -30px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff 0, var(--blue) 45%, #0c3fc9 100%); box-shadow: 0 2px 6px rgba(29,91,255,.4); animation: coin 1.4s cubic-bezier(.3,.6,.4,1) forwards; }
+@keyframes coin { 0% { transform: translateY(0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(560px) rotate(540deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .quiz-coins { display: none; } .quiz-step.quiz-result .quiz-facts li, .quiz-step.quiz-result .cta { animation: none; opacity: 1; transform: none; } }
 .paycard h2 { font: 800 28px/1.05 var(--display); font-stretch: 104%; letter-spacing: -.04em; margin: 14px 30px 12px 0; color: var(--ink); }
 .paycard .muted { color: var(--ink-2); }
 #auth-form { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 10px; }
