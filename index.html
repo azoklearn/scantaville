@@ -291,12 +291,14 @@
       <div id="quiz-steps">
         <section class="quiz-step" data-step="0">
           <p class="quiz-q">Combien tu veux gagner par mois ?</p>
-          <div class="quiz-opts" data-key="goal">
-            <button type="button" data-v="500">500 €<small>un complément</small></button>
-            <button type="button" data-v="1000">1 000 €<small>un vrai à-côté</small></button>
-            <button type="button" data-v="2000">2 000 €<small>de quoi vivre</small></button>
-            <button type="button" data-v="4000">4 000 €<small>en faire ton métier</small></button>
+          <div class="gauge">
+            <p class="gauge-val"><b id="goal-val">1 000 €</b><span id="goal-tag">un vrai à-côté</span></p>
+            <div class="gauge-track"><div id="gauge-fill" class="gauge-fill"></div><div id="gauge-ticks" class="gauge-ticks" aria-hidden="true"></div></div>
+            <input id="goal-gauge" type="range" min="200" max="10000" step="100" value="1000" aria-label="Objectif mensuel en euros">
+            <div class="gauge-x"><span>200 €</span><span>10 000 €</span></div>
+            <p class="gauge-sites"><b id="goal-sites">3</b> sites à vendre par mois, à 400 € le site</p>
           </div>
+          <button id="goal-next" class="cta" type="button">C'est mon objectif →</button>
         </section>
         <section class="quiz-step" data-step="1" hidden>
           <p class="quiz-q">Combien de temps as-tu par semaine ?</p>

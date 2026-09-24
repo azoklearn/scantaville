@@ -394,6 +394,7 @@ function openQuiz() {
   quiz.goal = quiz.hours = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
   $('#quiz-city').textContent = data.name; $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
   $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
+  $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
   openOverlay('#quiz');
 }
 function quizResult() {
@@ -414,7 +415,7 @@ function quizResult() {
     ['Suivre ', el('b', { text: 'le script de vente et les réponses aux objections' }), ', encaisser un acompte avec le devis intégré.'],
     [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`],
   ];
-  $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, ...parts)));
+  $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, el('span', {}, ...parts)))); // one cell after the number: inline text
   $('#quiz-first').textContent = feasible
     ? `Temps nécessaire : environ ${hoursNeeded < 1 ? 'une heure' : Math.round(hoursNeeded) + ' h'} par semaine, tu en as ${quiz.hours}. Ton premier site peut être vendu cette semaine.`
     : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
@@ -443,11 +444,26 @@ function rainCoins(n) {
   for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.style.left = (4 + Math.random() * 92) + '%'; c.style.animationDelay = (Math.random() * .9) + 's'; c.style.width = c.style.height = (12 + Math.random() * 12) + 'px'; box.append(c); }
   sound.landed();
 }
+// the goal gauge: drag, the amount and the number of sites follow, a tick sounds every 500 EUR
+const GOAL_TAGS = [[500, 'un complément'], [1000, 'un vrai à-côté'], [2000, 'de quoi vivre'], [3500, 'un vrai salaire'], [6000, 'en faire ton métier'], [Infinity, 'niveau agence']];
+$('#gauge-ticks').replaceChildren(...Array.from({ length: 9 }, () => el('i')));
+let lastGaugeStep = -1;
+function drawGauge() {
+  const r = $('#goal-gauge'), v = Number(r.value), pct = ((v - r.min) / (r.max - r.min)) * 100;
+  const vb = $('#goal-val'); vb.textContent = fr(v) + ' €'; vb.classList.add('pop'); setTimeout(() => vb.classList.remove('pop'), 120);
+  $('#goal-tag').textContent = GOAL_TAGS.find(([max]) => v < max)[1];
+  $('#gauge-fill').style.width = Math.max(2, pct) + '%';
+  $('#goal-sites').textContent = String(Math.max(1, Math.ceil(v / SITE_PRICE)));
+  const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); }
+  quiz.goal = v;
+}
+$('#goal-gauge').addEventListener('input', drawGauge);
+$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; }); });
+
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   quiz[box.dataset.key] = Number(b.dataset.v);
-  if (box.dataset.key === 'goal') $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; });
-  else quizResult();
+  quizResult();
 }));
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
 function afterQuiz() {
