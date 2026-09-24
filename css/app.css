@@ -391,6 +391,17 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .quiz-facts { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; font-size: 14.5px; color: var(--ink-2); }
 .quiz-facts li { padding: 10px 12px; border-radius: 10px; background: var(--bg-2); } .quiz-facts b { color: var(--ink); }
 .quiz-result .cta { width: 100%; }
+.quiz-plan { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; counter-reset: plan; }
+.quiz-plan li { counter-increment: plan; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; padding: 12px 14px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); font-size: 14.5px; color: var(--ink-2); opacity: 0; transform: translateY(8px); animation: rise .5s var(--ease) forwards; }
+.quiz-plan li::before { content: counter(plan, decimal-leading-zero); font: 500 12px/1.7 var(--mono); color: var(--blue); }
+.quiz-plan li b { color: var(--ink); }
+.quiz-plan li:nth-child(1) { animation-delay: 1s; } .quiz-plan li:nth-child(2) { animation-delay: 1.15s; } .quiz-plan li:nth-child(3) { animation-delay: 1.3s; } .quiz-plan li:nth-child(4) { animation-delay: 1.45s; } .quiz-plan li:nth-child(5) { animation-delay: 1.6s; }
+.quiz-close { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--ink); color: #fff; font-size: 15px; opacity: 0; animation: rise .5s 1.8s var(--ease) forwards; }
+.quiz-close b { color: #fff; }
+.quiz-step.quiz-result .cta { animation-delay: 1.95s; }
+#quiz .quiz-plan li { font-size: clamp(15px, 1.9vw, 17px); }
+#quiz .quiz-close { font-size: clamp(15px, 2vw, 18px); }
+@media (prefers-reduced-motion: reduce) { .quiz-plan li, .quiz-close { animation: none; opacity: 1; transform: none; } }
 .quiz-price { position: relative; margin: 0 0 18px; padding: 14px 16px 10px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line); }
 .quiz-price b { display: block; font: 800 24px/1 var(--display); letter-spacing: -.03em; color: var(--ink); margin-bottom: 8px; }
 .quiz-price input { width: 100%; accent-color: var(--blue); cursor: pointer; }

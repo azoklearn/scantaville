@@ -383,54 +383,70 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
 
 // ───────────────────────── Quiz after the scan ─────────────────────────
-const CONTACTS_PER_SALE = 2, WORK_DAYS = 22;
-const quiz = { hours: 0, perDay: 0, done: false };
+// Funnel after the scan: goal in EUR -> time available -> the plan to get there -> pay.
+// The plan is built from the goal: sites needed, shops to contact per week, time per site. Same "1 yes for 2
+// contacts" ratio as elsewhere (CONTACTS_PER_SALE) and 400 EUR per site; both are shown, never hidden.
+const SITE_PRICE = 400, CONTACTS_PER_SALE = 2, MIN_PER_CONTACT = 10, MIN_PER_SITE = 120;
+const quiz = { goal: 0, hours: 0, done: false };
+let quizCalc = null, countRaf = 0;
 function openQuiz() {
   const { data } = state; if (!data) return;
-  quiz.hours = quiz.perDay = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €'; $('#quiz-price').value = 400;
-  $('#quiz-city').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads); 
+  quiz.goal = quiz.hours = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
+  $('#quiz-city').textContent = data.name; $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
   $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
   openOverlay('#quiz');
 }
-let quizCalc = null, countRaf = 0;
 function quizResult() {
-  const total = state.data.stats.leads;
-  // a day is capped by the time available: ~10 minutes per shop, hours spread over 5 days
-  const perDay = Math.min(quiz.perDay, Math.max(1, Math.round((quiz.hours / 5) * 6)));
-  const contacts = Math.min(total, perDay * WORK_DAYS);
-  const sales = Math.max(1, Math.round(contacts / CONTACTS_PER_SALE));
-  quizCalc = { contacts, sales, total };
-  track('quiz', { hours: quiz.hours, perDay: quiz.perDay });
+  if (!state.data) return;
+  const total = state.data.stats.leads, city = state.data.name;
+  const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
+  const contacts = sites * CONTACTS_PER_SALE;                                    // per month
+  const perWeek = Math.max(1, Math.ceil(contacts / 4));
+  const perContactDay = Math.max(1, Math.ceil(perWeek / 3));                     // 3 outing days a week
+  const hoursNeeded = (contacts * MIN_PER_CONTACT + sites * MIN_PER_SITE) / 60 / 4; // per week
+  const feasible = hoursNeeded <= quiz.hours * 1.15;
+  const months = Math.max(1, Math.floor(total / contacts)); // how long the city lasts at this pace
+  quizCalc = { sites, contacts, perWeek, hoursNeeded, feasible };
+  const plan = [
+    ['Objectif : ', el('b', { text: `${sites} site${sites > 1 ? 's' : ''} vendu${sites > 1 ? 's' : ''} par mois` }), ` à ${fr(SITE_PRICE)} € = ${fr(sites * SITE_PRICE)} €.`],
+    ['Contacter ', el('b', { text: `${contacts} commerces dans le mois` }), `, soit ${perWeek} par semaine (${perContactDay} par sortie, 3 sorties) : un oui pour ${CONTACTS_PER_SALE} contacts, ça fait ${sites} vente${sites > 1 ? 's' : ''}.`],
+    ['Pour chacun, ', el('b', { text: 'générer sa maquette en 1 seconde' }), ' et la montrer sur ton téléphone : « je vous ai déjà fait votre site ».'],
+    ['Suivre ', el('b', { text: 'le script de vente et les réponses aux objections' }), ', encaisser un acompte avec le devis intégré.'],
+    [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`],
+  ];
+  $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, ...parts)));
+  $('#quiz-first').textContent = feasible
+    ? `Temps nécessaire : environ ${hoursNeeded < 1 ? 'une heure' : Math.round(hoursNeeded) + ' h'} par semaine, tu en as ${quiz.hours}. Ton premier site peut être vendu cette semaine.`
+    : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
+  $('#quiz-sites').textContent = String(sites);
+  track('quiz', { goal: quiz.goal, hours: quiz.hours });
   const step = $('.quiz-step[data-step="2"]');
   $$('.quiz-step').forEach((x) => { x.hidden = x.dataset.step !== '2'; });
-  // restart the staggered entrance each time the result shows
-  for (const n of $$('.quiz-facts li, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
-  showEuros(true);
+  for (const n of $$('.quiz-plan li, .quiz-close, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
+  showEuros(quiz.goal);
 }
-/** the big number counts up to the total (that is the TikTok beat); the slider then re-counts from the current value */
-function showEuros(withCoins) {
-  const price = Number($('#quiz-price').value), target = quizCalc.sales * price, el = $('#quiz-euros');
-  $('#quiz-price-val').textContent = fr(price) + ' €'; $('#quiz-price-echo').textContent = fr(price) + ' €';
+/** the big number counts up (that is the TikTok beat) */
+function showEuros(target) {
+  const elm = $('#quiz-euros');
   cancelAnimationFrame(countRaf);
-  const from = Number(el.dataset.v || 0), t0 = performance.now(), dur = withCoins ? 1100 : 350;
+  const from = Number(elm.dataset.v || 0), t0 = performance.now(), dur = 1100;
   const tick = (now) => {
     const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    el.textContent = fr(Math.round(from + (target - from) * e)) + ' €';
-    if (k < 1) countRaf = requestAnimationFrame(tick); else { el.dataset.v = target; el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 200); }
+    elm.textContent = fr(Math.round(from + (target - from) * e)) + ' €';
+    if (k < 1) countRaf = requestAnimationFrame(tick); else { elm.dataset.v = target; elm.classList.add('pop'); setTimeout(() => elm.classList.remove('pop'), 200); }
   };
   countRaf = requestAnimationFrame(tick);
-  if (withCoins) rainCoins(Math.min(28, 6 + quizCalc.sales * 4));
+  rainCoins(Math.min(28, 6 + quizCalc.sites * 3));
 }
 function rainCoins(n) {
   const box = $('.quiz-coins'); box.replaceChildren();
   for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.style.left = (4 + Math.random() * 92) + '%'; c.style.animationDelay = (Math.random() * .9) + 's'; c.style.width = c.style.height = (12 + Math.random() * 12) + 'px'; box.append(c); }
   sound.landed();
 }
-$('#quiz-price').addEventListener('input', () => { if (quizCalc) showEuros(false); });
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   quiz[box.dataset.key] = Number(b.dataset.v);
-  if (box.dataset.key === 'hours') $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; });
+  if (box.dataset.key === 'goal') $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; });
   else quizResult();
 }));
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
@@ -446,7 +462,7 @@ function lockedPaywall() {
   const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;
   const max = limitFor('leadsPerCity', level);
   const title = level === 0
-    ? `${fr(total)} commerces sans site à ${state.data.name}. Choisis une formule pour voir lesquels.`
+    ? (quizCalc && quiz.goal ? `Ton plan pour ${fr(quiz.goal)} € par mois est prêt. Il te manque les ${fr(total)} commerces de ${state.data.name}.` : `${fr(total)} commerces sans site à ${state.data.name}. Choisis une formule pour voir lesquels.`)
     : `Tu as débloqué ${fr(Math.min(max, total))} commerces sur ${fr(total)} à ${state.data.name}.`;
   openPaywall(title, { minLevel: Math.min(3, level + 1) });
 }

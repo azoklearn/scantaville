@@ -286,10 +286,20 @@
     <article class="paycard quizcard" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
       <p class="kicker"><i class="dot"></i> <span id="quiz-city"></span></p>
-      <h2 id="quiz-title"><b id="quiz-count" class="accent"></b> commerces sans site web.</h2>
+      <h2 id="quiz-title"><b id="quiz-count" class="accent"></b> commerces sans site web à <span id="quiz-city-h"></span>.</h2>
+      <p id="quiz-sub" class="muted">Chacun est un client potentiel pour un site à 400 €. Voyons ce que ça peut te rapporter.</p>
       <div id="quiz-steps">
         <section class="quiz-step" data-step="0">
-          <p class="quiz-q">Combien de temps as-tu par semaine pour ça ?</p>
+          <p class="quiz-q">Combien tu veux gagner par mois ?</p>
+          <div class="quiz-opts" data-key="goal">
+            <button type="button" data-v="500">500 €<small>un complément</small></button>
+            <button type="button" data-v="1000">1 000 €<small>un vrai à-côté</small></button>
+            <button type="button" data-v="2000">2 000 €<small>de quoi vivre</small></button>
+            <button type="button" data-v="4000">4 000 €<small>en faire ton métier</small></button>
+          </div>
+        </section>
+        <section class="quiz-step" data-step="1" hidden>
+          <p class="quiz-q">Combien de temps as-tu par semaine ?</p>
           <div class="quiz-opts" data-key="hours">
             <button type="button" data-v="2">2 h<small>le soir, de temps en temps</small></button>
             <button type="button" data-v="5">5 h<small>quelques soirs</small></button>
@@ -297,26 +307,14 @@
             <button type="button" data-v="20">20 h et +<small>à fond</small></button>
           </div>
         </section>
-        <section class="quiz-step" data-step="1" hidden>
-          <p class="quiz-q">Combien de commerces peux-tu contacter par jour ?</p>
-          <div class="quiz-opts" data-key="perDay">
-            <button type="button" data-v="2">2<small>en passant</small></button>
-            <button type="button" data-v="5">5<small>un petit tour</small></button>
-            <button type="button" data-v="10">10<small>une vraie tournée</small></button>
-            <button type="button" data-v="20">20<small>tous les jours</small></button>
-          </div>
-        </section>
         <section class="quiz-step quiz-result" data-step="2" hidden>
-          <p class="quiz-q">Ton prix pour un site vitrine</p>
-          <div class="quiz-price">
-            <b id="quiz-price-val">400 €</b>
-            <input id="quiz-price" type="range" min="200" max="1500" step="50" value="400" aria-label="Prix d'un site">
-            <div class="quiz-price-x"><span>200 €</span><span>1 500 €</span></div>
-          </div>
-          <p class="quiz-q">À ce rythme, sur un mois :</p>
-          <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, à <span id="quiz-price-echo">400 €</span> le site</span></p>
+          <p class="quiz-q">Ton objectif</p>
+          <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, avec <b id="quiz-sites"></b> site(s) vendu(s) à 400 €</span></p>
           <div class="quiz-coins" aria-hidden="true"></div>
-          <button id="quiz-go" class="cta" type="button">Voir les commerces</button>
+          <p class="quiz-q">Ton plan pour y arriver</p>
+          <ol id="quiz-plan" class="quiz-plan"></ol>
+          <p class="quiz-close"><b id="quiz-first"></b></p>
+          <button id="quiz-go" class="cta" type="button">Je lance mon plan</button>
           <p class="fine">Estimation illustrative, pas une promesse : ça dépend de ton effort, de ta ville et de ta façon de présenter.</p>
         </section>
       </div>
