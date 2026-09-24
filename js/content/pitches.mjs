@@ -357,6 +357,6 @@ export const OBJECTIONS = [
 // ───────────────────────── Funnel assumption ─────────────────────────
 
 export const FUNNEL = {
-  contactsPerSale: 15,
-  note: "Hypothèse d'illustration et non une promesse : on compte ici 1 vente pour 15 commerces contactés, mais ton résultat réel dépend de ton travail, de ta ville et de ta façon de présenter, et il peut très bien être de zéro.",
+  contactsPerSale: 2,
+  note: "Hypothèse d'illustration et non une promesse : on compte ici 1 vente pour 2 commerces contactés, mais ton résultat réel dépend de ton travail, de ta ville et de ta façon de présenter, et il peut très bien être de zéro.",
 };
