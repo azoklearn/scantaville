@@ -8,6 +8,7 @@ import { FAMILY_COPY, SAMPLES, SAMPLE_BY_FAMILY, copyFor, cuisineLabel, monogram
 import { kitFor, pickVariant, PALETTE_VARS } from './trade-kit.mjs';
 import { TRADE_COPY } from './content.mjs';
 import { renderFamily } from './templates.mjs';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.mjs';
 
 const FONTS = {
   salon: 'family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Jost:wght@300;400;500',
@@ -23,6 +24,7 @@ const app = document.getElementById('app');
 const ribbon = document.getElementById('ribbon-text');
 let model = null;
 let mapCleanup = null;
+let published = null; // payload of a published site (scantaville.fr/site/<slug>), rendered without the mock-up ribbon
 
 // ---- payload -> model ----------------------------------------------------------------------------
 
@@ -33,6 +35,7 @@ function samplePayload() {
 }
 
 function readPayload() {
+  if (published) return published;
   const hash = location.hash.replace(/^#/, '');
   if (hash.length > 8 && hash.length < 6000) {
     const p = decodePayload(hash);
@@ -82,7 +85,7 @@ function buildModel(p) {
     lenScale: len <= 14 ? 1 : len <= 24 ? 0.86 : len <= 38 ? 0.72 : len <= 50 ? 0.6 : 0.5,
     addr, coords, itinerary: itineraryUrl(name, addr, coords),
     phone: cleanPhone(p.p), email: cleanEmail(p.e), ig: cleanSocial(p.ig, 'ig'), fb: cleanSocial(p.fb, 'fb'),
-    cuisine: cuisineLabel(p.cu), by: cleanFirstName(p.by), domain: cleanDomain(p.d), badge: p.w === 1,
+    cuisine: cuisineLabel(p.cu), by: cleanFirstName(p.by), domain: cleanDomain(p.d), badge: p.w === 1, live: !!published,
     hoursRaw, hours: parseOpeningHours(hoursRaw),
     // Opening hours are wall-clock time at the shop. Metropolitan France -> Europe/Paris; elsewhere (DROM...) -> viewer's clock.
     timeZone: !coords || (coords.lat > 41 && coords.lat < 51.5 && coords.lon > -5.5 && coords.lon < 10) ? 'Europe/Paris' : undefined,
@@ -125,7 +128,9 @@ function render() {
   for (const name of PALETTE_VARS) root.style.removeProperty(name);
   for (const [name, value] of Object.entries(model.variant.palette)) if (PALETTE_VARS.includes(name)) root.style.setProperty(name, value);
   loadFonts(model.tpl);
-  document.title = `${model.name}${model.city ? ' · ' + model.city : ''} (maquette)`;
+  document.title = model.live ? `${model.name}${model.city ? ' · ' + model.city : ''}` : `${model.name}${model.city ? ' · ' + model.city : ''} (maquette)`;
+  root.dataset.live = model.live ? '1' : '0';
+  document.getElementById('robots')?.setAttribute('content', model.live ? 'index,follow' : 'noindex,nofollow');
   if (ribbon) ribbon.textContent = `Maquette non officielle${model.by ? ` proposée par ${model.by}` : ''} · ce site n’est pas en ligne`;
   app.replaceChildren(...renderFamily(model));
   tick();
@@ -202,7 +207,19 @@ document.addEventListener('click', (ev) => {
   (target || document.body).scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
 });
 
-render();
+/** scantaville.fr/site/<slug> -> published site from the database; anything else -> hash mock-up */
+async function boot() {
+  const slug = new URLSearchParams(location.search).get('s');
+  if (slug && /^[a-z0-9-]{3,80}$/.test(slug) && SUPABASE_URL) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/site_get`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ p_slug: slug }) });
+      const p = r.ok ? await r.json() : null;
+      if (p && typeof p === 'object' && !Array.isArray(p) && cleanText(p.n, 80).length >= 2) published = p;
+    } catch { /* falls back to the mock-up */ }
+  }
+  render();
+}
+boot();
 addEventListener('hashchange', render);
 setInterval(tick, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });

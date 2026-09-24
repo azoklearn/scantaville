@@ -92,3 +92,11 @@ export async function reportHasSite(leadId, insee) {
   const uid = await userId(sb); if (!uid) return;
   await sb.from('reports').upsert({ user_id: uid, city_insee: insee, lead_id: leadId, kind: 'has_site' }, { onConflict: 'user_id,city_insee,lead_id', ignoreDuplicates: true });
 }
+
+/** Pro: puts the mock-up online at /site/<slug>. Returns { slug } or { error }. The server re-checks the plan. */
+export async function publishSite(slug, payload) {
+  const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
+  const { data, error } = await sb.rpc('publish_site', { p_slug: slug, p_payload: payload });
+  if (error) return { error: /pro plan/i.test(error.message) ? 'La mise en ligne est dans la formule Pro.' : /sign in/i.test(error.message) ? 'Connecte-toi d’abord.' : 'Mise en ligne impossible pour le moment.' };
+  return { slug: data };
+}

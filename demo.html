@@ -7,9 +7,9 @@
   Defence in depth: js/demo builds the DOM with textContent only, and this CSP forbids any script that is not ours.
   If you edit the inline boot script below, refresh its hash:  node js/demo/csp-hash.mjs --write
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Yg0MvTDz2k5cfxfWwEXciBWN5E342TDJVWUqU+J/xfg=' https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src blob:; child-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-Yg0MvTDz2k5cfxfWwEXciBWN5E342TDJVWUqU+J/xfg=' https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org https://umkzjafphozxekhffyct.supabase.co; worker-src blob:; child-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
+<meta name="robots" content="noindex,nofollow" id="robots">
 <meta name="referrer" content="no-referrer">
 <meta name="format-detection" content="telephone=no">
 <title>Maquette de site</title>

@@ -753,3 +753,7 @@ html { scrollbar-width: thin; }
 
 /* free plan: the mock-up says which tool made it */
 .ft-made { margin-top: 14px; font-size: 12px; font-weight: 600; letter-spacing: .02em; opacity: .85; }
+
+/* published site: no mock-up ribbon */
+:root[data-live="1"] .ribbon { display: none; }
+:root[data-live="1"] { --ribbon-h: 0px; }

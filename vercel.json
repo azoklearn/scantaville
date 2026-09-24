@@ -11,13 +11,19 @@
       ]
     },
     {
-      "source": "/(demo|doc|admin)\\.html",
+      "source": "/(doc|admin)\\.html",
       "headers": [
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/site/:slug",
+      "destination": "/demo.html?s=:slug"
     }
   ]
 }

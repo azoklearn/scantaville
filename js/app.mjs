@@ -561,7 +561,7 @@ $('#btn-build').addEventListener('click', async () => {
   const frame = $('#demo-frame'), build = $('#build'), steps = $('#build-steps');
   frame.classList.remove('on'); build.classList.remove('off');
   steps.replaceChildren(...BUILD_STEPS.map((s) => el('li', { text: s })));
-  $('#demo-name').textContent = l.name; $('#demo-ms').textContent = '…';
+  $('#demo-name').textContent = l.name; $('#demo-ms').textContent = '…'; $('#demo-live').hidden = true;
   $('.demo-side').dataset.expanded = 'false'; $('#demo-more').textContent = 'Script et suivi'; $('#demo-more').setAttribute('aria-expanded', 'false');
   $('#demo-open').href = state.demoUrl;
   openOverlay('#demo');
@@ -599,6 +599,26 @@ $('#demo-more').addEventListener('click', (e) => {
   const side = $('.demo-side'), open = side.dataset.expanded !== 'true';
   side.dataset.expanded = String(open); e.currentTarget.setAttribute('aria-expanded', String(open));
   e.currentTarget.textContent = open ? 'Revoir le site en grand' : 'Script et suivi';
+});
+
+// ───────────────────────── Publish (Pro): the mock-up becomes a real page at scantaville.fr/site/<slug> ─────────────────────────
+const slugOf = (s) => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+$('#demo-publish').addEventListener('click', async () => {
+  const l = state.lead;
+  if (!store.can('publish')) return openPaywall('La mise en ligne du site est dans la formule Pro.', { feature: 'publish' });
+  if (!state.user) { askAccount(); return; }
+  if (!confirm(`Le site de « ${l.name} » sera visible par tout le monde à l’adresse scantaville.fr/site/…\n\nMets-le en ligne seulement si le commerçant a donné son accord. Continuer ?`)) return;
+  const payload = leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0);
+  const slug = slugOf(`${l.name}-${state.data.name}`) || `commerce-${Date.now()}`;
+  const btn = $('#demo-publish'); btn.disabled = true;
+  const res = await supa.publishSite(slug, payload);
+  btn.disabled = false;
+  if (res.error) return toast(res.error);
+  const url = `${location.origin}/site/${res.slug}`;
+  const box = $('#demo-live'); box.hidden = false;
+  box.replaceChildren('En ligne : ', el('a', { href: url, target: '_blank', rel: 'noopener', text: url }));
+  try { await navigator.clipboard.writeText(url); toast('Site en ligne, lien copié.'); } catch { toast('Site en ligne.'); }
+  track('site_published', { trade: l.trade });
 });
 
 $('#demo-copy').addEventListener('click', async () => {

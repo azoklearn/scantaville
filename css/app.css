@@ -334,6 +334,10 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .status { display: flex; align-items: center; gap: 4px; min-width: 0; margin-top: 12px; font: 400 10.5px var(--mono); text-transform: uppercase; color: var(--muted); }
 .status .chips { padding: 0 0 0 8px; min-width: 0; flex: 1; }
 /* phone: the generated site is the star, the sales kit stays folded until asked for */
+.demo-publish { width: 100%; margin-top: 8px; background: var(--ink); }
+.demo-publish:hover { background: var(--blue); }
+#demo-live { margin-top: 8px; word-break: break-all; }
+#demo-live a { color: var(--blue); font-weight: 600; }
 .demo-actions--sub { margin-top: 8px; }
 .demo-actions--sub .ghost { flex: 1; }
 .demo-more { margin: 0; }
