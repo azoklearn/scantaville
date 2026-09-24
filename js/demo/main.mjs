@@ -59,6 +59,19 @@ function itineraryUrl(name, addr, coords) {
   return null;
 }
 
+// user edits (payload key o). Images are only accepted from our own Supabase storage, over https.
+const IMG_RE = new RegExp('^' + (SUPABASE_URL || 'https://none').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/storage/v1/object/public/sites-media/[A-Za-z0-9_./-]{1,200}$');
+const cleanImg = (v) => (typeof v === 'string' && IMG_RE.test(v) ? v : '');
+function cleanEdits(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return {};
+  const items = Array.isArray(o.it) ? o.it.slice(0, 8).map((x) => Array.isArray(x) ? [cleanText(x[0], 60), cleanText(x[1], 120)] : null).filter((x) => x && x[0]) : null;
+  return {
+    tagline: cleanText(o.tg, 140), about: typeof o.ab === 'string' ? cleanText(o.ab, 900) : '',
+    items: items && items.length ? items : null, img: cleanImg(o.img),
+    gal: Array.isArray(o.gal) ? o.gal.map(cleanImg).filter(Boolean).slice(0, 6) : [],
+  };
+}
+
 function buildModel(p) {
   const trade = typeof p.t === 'string' && Object.hasOwn(TRADES, p.t) ? p.t : 'commerce';
   const tplRaw = TRADES[trade].tpl;
@@ -67,11 +80,12 @@ function buildModel(p) {
   const city = cleanText(p.c, 60);
   const copy = copyFor(trade, name);
   const kit = kitFor(trade);
+  const edits = cleanEdits(p.o);
   const coords0 = cleanCoords(p.la, p.lo);
   const vRaw = Number(p.v);
   const variant = pickVariant(trade, `${name}|${coords0 ? coords0.lat.toFixed(4) + ',' + coords0.lon.toFixed(4) : city}`, Number.isInteger(vRaw) && vRaw >= 0 && vRaw < 12 ? vRaw : 0);
   // a tagline refined from the shop's name (chocolaterie, cave...) says more than a generic alternate: keep it
-  const tagline = variant.tagline && copy.tagline === TRADE_COPY[trade]?.tagline ? variant.tagline : copy.tagline;
+  const tagline = edits.tagline || (variant.tagline && copy.tagline === TRADE_COPY[trade]?.tagline ? variant.tagline : copy.tagline);
   const coords = cleanCoords(p.la, p.lo);
   const addr = splitAddress(cleanText(p.a, 160), city);
   const hoursRaw = cleanText(p.h, 300);
@@ -79,7 +93,7 @@ function buildModel(p) {
   const len = Array.from(name).length;
   return {
     name, trade, tpl, city,
-    label: copy.label, tagline, items: copy.items, kit, variant, fam: { ...FAMILY_COPY[tpl], ...(kit.ui || {}) },
+    label: copy.label, tagline, items: edits.items || copy.items, kit, variant, about: edits.about, img: edits.img, gal: edits.gal, edited: !!(edits.items || edits.tagline || edits.about), fam: { ...FAMILY_COPY[tpl], ...(kit.ui || {}) },
     mono: monogram(name, Array.from(copy.label)[0]),
     longest: Math.max(4, ...words.map((w) => Array.from(w).length)),
     lenScale: len <= 14 ? 1 : len <= 24 ? 0.86 : len <= 38 ? 0.72 : len <= 50 ? 0.6 : 0.5,

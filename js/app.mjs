@@ -565,6 +565,7 @@ const BUILD_STEPS = ['Nom et métier', 'Adresse et plan', 'Horaires d\'ouverture
 function demoUrlFor(l) {
   const url = new URL('demo.html', location.href);
   const payload = leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0);
+  const o = store.getEdits(l.id); if (o) payload.o = o;
   if (!store.can('noBadge')) payload.w = 1; // below Pro, the mock-up says which tool made it
   url.hash = encodePayload(payload);
   return url.href;
@@ -641,6 +642,7 @@ $('#demo-publish').addEventListener('click', async () => {
   if (!state.user) { askAccount(); return; }
   if (!confirm(`Le site de « ${l.name} » sera visible par tout le monde à l’adresse scantaville.fr/site/…\n\nMets-le en ligne seulement si le commerçant a donné son accord. Continuer ?`)) return;
   const payload = leadToPayload(l, state.data.name, store.getAuthor(), l._style || 0);
+  const o = store.getEdits(l.id); if (o) payload.o = o;
   const slug = slugOf(`${l.name}-${state.data.name}`) || `commerce-${Date.now()}`;
   const btn = $('#demo-publish'); btn.disabled = true;
   const res = await supa.publishSite(slug, payload);
@@ -652,6 +654,64 @@ $('#demo-publish').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(url); toast('Site en ligne, lien copié.'); } catch { toast('Site en ligne.'); }
   track('site_published', { trade: l.trade });
 });
+
+// ───────────────────────── Site editor (Pro): texts, services, photos ─────────────────────────
+const ed = { o: null };
+function editorRender() {
+  const f = $('#editor-form'), o = ed.o;
+  f.elements.tg.value = o.tg || ''; f.elements.ab.value = o.ab || '';
+  $('#ed-img').style.backgroundImage = o.img ? `url("${o.img}")` : ''; $('#ed-img-del').hidden = !o.img;
+  $('#ed-items').replaceChildren(...(o.it || []).map((it, i) => el('div', { class: 'ed-item' },
+    el('input', { type: 'text', value: it[0], maxlength: '60', placeholder: 'Prestation', 'aria-label': 'Nom', oninput: (e) => { it[0] = e.target.value; } }),
+    el('input', { type: 'text', value: it[1] || '', maxlength: '120', placeholder: 'Détail', 'aria-label': 'Détail', oninput: (e) => { it[1] = e.target.value; } }),
+    el('button', { type: 'button', class: 'doc-del', 'aria-label': 'Supprimer', text: '×', onclick: () => { o.it.splice(i, 1); editorRender(); } }))));
+  $('#ed-gal').replaceChildren(...(o.gal || []).map((u, i) => { const d = el('div', {}, el('button', { type: 'button', 'aria-label': 'Retirer', text: '×', onclick: () => { o.gal.splice(i, 1); editorRender(); } })); d.style.backgroundImage = `url("${u}")`; return d; }));
+  $('.ed-gal-add').hidden = (o.gal || []).length >= 6;
+}
+function openEditor() {
+  const l = state.lead;
+  if (!store.can('editSite')) return openPaywall('Modifier le site (textes, prestations, photos) est dans la formule Pro.', { feature: 'editSite' });
+  const saved = store.getEdits(l.id);
+  // start from what the mock-up shows, so the user edits real lines instead of a blank form
+  const fam = TRADES[l.trade]?.tpl || 'atelier';
+  ed.o = saved ? JSON.parse(JSON.stringify(saved)) : { tg: '', ab: '', it: null, img: '', gal: [] };
+  if (!ed.o.it) { try { const doc = $('#demo-frame').contentDocument; ed.o.it = [...doc.querySelectorAll('.svc-name, .dish-name, .tag-name, .spec-name')].slice(0, 8).map((n) => [n.textContent, n.parentElement.querySelector('.svc-desc, .dish-desc, .tag-desc, .spec-desc')?.textContent || '']); } catch { ed.o.it = []; } }
+  if (!ed.o.it.length) ed.o.it = [['', '']];
+  $('#editor-title').textContent = `Le site de ${l.name}`; $('#ed-msg').textContent = '';
+  editorRender(); openOverlay('#editor');
+  void fam;
+}
+$('#demo-edit').addEventListener('click', openEditor);
+// keep the text fields in the model, so re-rendering the lists (add / remove a line, a photo) never wipes them
+$('#editor-form').elements.tg.addEventListener('input', (e) => { if (ed.o) ed.o.tg = e.target.value; });
+$('#editor-form').elements.ab.addEventListener('input', (e) => { if (ed.o) ed.o.ab = e.target.value; });
+$('#ed-item-add').addEventListener('click', () => { if (ed.o.it.length < 8) { ed.o.it.push(['', '']); editorRender(); $('#ed-items .ed-item:last-child input')?.focus(); } });
+$('#ed-img-del').addEventListener('click', () => { ed.o.img = ''; editorRender(); });
+async function uploadTo(files, put) {
+  if (!state.user) { $('#ed-msg').textContent = 'Connecte-toi pour envoyer des photos.'; return; }
+  for (const f of files) { $('#ed-msg').textContent = 'Envoi de la photo…'; const r = await supa.uploadImage(f); if (r.error) { $('#ed-msg').textContent = r.error; return; } put(r.url); editorRender(); }
+  $('#ed-msg').textContent = '';
+}
+$('#ed-img-file').addEventListener('change', (e) => { uploadTo([...e.target.files].slice(0, 1), (u) => { ed.o.img = u; }); e.target.value = ''; });
+$('#ed-gal-file').addEventListener('change', (e) => { const room = 6 - (ed.o.gal || []).length; uploadTo([...e.target.files].slice(0, room), (u) => { ed.o.gal.push(u); }); e.target.value = ''; });
+$('#ed-reset').addEventListener('click', () => { if (confirm('Revenir au site généré automatiquement ?')) { store.setEdits(state.lead.id, null); ed.o = null; $('#editor').hidden = true; reloadDemo(); } });
+$('#editor-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target.elements, o = ed.o;
+  const it = (o.it || []).map((x) => [String(x[0] || '').trim(), String(x[1] || '').trim()]).filter((x) => x[0]);
+  const clean = { tg: f.tg.value.trim(), ab: f.ab.value.trim(), it: it.length ? it : null, img: o.img || '', gal: o.gal || [] };
+  const empty = !clean.tg && !clean.ab && !clean.it && !clean.img && !clean.gal.length;
+  store.setEdits(state.lead.id, empty ? null : clean);
+  $('#editor').hidden = true; reloadDemo(); toast('Site mis à jour.');
+  track('site_edited', { trade: state.lead.trade });
+});
+/** re-render the mock-up in place with the current payload (edits, style) */
+async function reloadDemo() {
+  const frame = $('#demo-frame'); state.demoUrl = demoUrlFor(state.lead); $('#demo-open').href = state.demoUrl;
+  frame.classList.remove('on'); const loaded = demoReady(frame);
+  if (frame.contentWindow && frame.src.split('#')[0] === state.demoUrl.split('#')[0]) frame.contentWindow.location.replace(state.demoUrl); else frame.src = state.demoUrl;
+  await loaded; frame.classList.add('on');
+}
 
 $('#demo-copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(state.demoUrl); toast('Lien copié. Montre-le au patron, ou envoie-le en DM.'); }

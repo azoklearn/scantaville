@@ -757,3 +757,15 @@ html { scrollbar-width: thin; }
 /* published site: no mock-up ribbon */
 :root[data-live="1"] .ribbon { display: none; }
 :root[data-live="1"] { --ribbon-h: 0px; }
+
+/* owner content: photo, about, gallery (same DOM in the four families) */
+.sec--photo { padding: 0 0 8px; }
+.sec--photo .photo { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 22px; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+[data-tpl="atelier"] .sec--photo .photo { border-radius: 0; border: 2px solid var(--ink); box-shadow: none; }
+[data-tpl="fournil"] .sec--photo .photo { border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+.sec--about .about { max-width: 62ch; font-size: 17px; line-height: 1.6; display: grid; gap: 14px; }
+[data-tpl="salon"] .sec--about .about { margin-inline: auto; text-align: center; font-size: 18px; }
+.sec--gallery .gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.sec--gallery .gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; }
+[data-tpl="atelier"] .sec--gallery .gallery img { border-radius: 0; border: 2px solid var(--ink); }
+@media (min-width: 860px) { .sec--gallery .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } .sec--photo { padding-top: 12px; } }

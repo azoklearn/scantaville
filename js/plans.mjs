@@ -29,6 +29,7 @@ export const PLANS = [
       { text: 'Tous les scripts : e-mail, appel, réponses aux objections' },
       { text: 'Devis et factures en PDF, mentions obligatoires incluses' },
       { text: 'Export CSV de tes prospects et kit légal' },
+      { text: 'Modifier le site : textes, prestations, photos' },
       { text: 'Mise en ligne du site vendu, à une adresse scantaville.fr/site/…' },
     ],
   },
@@ -64,7 +65,7 @@ export const SCRIPT_LEVEL = { walkin: 1, dm: 1, email: 2, call: 2, objections: 2
 /** feature -> lowest plan level that unlocks it */
 export const FEATURES = {
   fullPipeline: 1,
-  noBadge: 2, csvExport: 2, legalKit: 2, invoicing: 2, publish: 2,
+  noBadge: 2, csvExport: 2, legalKit: 2, invoicing: 2, publish: 2, editSite: 2,
   cityOnDemand: 3,
 };
 

@@ -224,6 +224,7 @@
           <button id="demo-copy" class="cta" type="button">Copier le lien</button>
           <button id="demo-restyle" class="ghost" type="button" title="Même commerce, autre palette et autre mise en page">Autre style ↻</button>
         </div>
+        <button id="demo-edit" class="ghost demo-edit" type="button">✎ Modifier le site</button>
         <button id="demo-publish" class="cta demo-publish" type="button">Mettre le site en ligne</button>
         <p id="demo-live" class="fine" hidden></p>
         <div class="demo-actions demo-actions--sub">
@@ -343,6 +344,35 @@
       </div>
       <p class="fine">Ton suivi de prospects est sauvegardé sur ton compte et te suit d'un appareil à l'autre.</p>
     </article>
+  </div>
+
+  <!-- ───────── Site editor (Pro): texts, services, photos ───────── -->
+  <div id="editor" class="overlay" hidden>
+    <div class="overlay-bg" data-close></div>
+    <form id="editor-form" class="paycard editcard" autocomplete="off">
+      <button class="x" type="button" data-close aria-label="Fermer">×</button>
+      <p class="kicker"><i class="dot"></i> Modifier le site</p>
+      <h2 id="editor-title">Le site de …</h2>
+      <p class="muted">Tout ce que tu changes ici s'affiche dans la maquette et dans le site en ligne.</p>
+      <label>Accroche <small>(sous le nom)</small><input name="tg" type="text" maxlength="140" placeholder="Ex. : Coupes, couleurs et soins, à deux pas de chez vous."></label>
+      <label>Présentation <small>(quelques lignes sur le commerce)</small><textarea name="ab" rows="4" maxlength="900" placeholder="Depuis 2015, Nadia et son équipe vous accueillent…"></textarea></label>
+      <fieldset>
+        <legend>Photo principale</legend>
+        <div class="ed-photo"><div id="ed-img" class="ed-img"></div><div class="ed-photo-btns"><label class="ghost small">Choisir une photo<input id="ed-img-file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button id="ed-img-del" class="link" type="button" hidden>Retirer</button></div></div>
+      </fieldset>
+      <fieldset>
+        <legend>Prestations, carte, spécialités <small>(nom · détail)</small></legend>
+        <div id="ed-items"></div>
+        <button id="ed-item-add" class="link" type="button">+ Ajouter une ligne</button>
+      </fieldset>
+      <fieldset>
+        <legend>Galerie <small>(jusqu'à 6 photos)</small></legend>
+        <div id="ed-gal" class="ed-gal"></div>
+        <label class="ghost small ed-gal-add">Ajouter des photos<input id="ed-gal-file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+      </fieldset>
+      <p id="ed-msg" class="fine"></p>
+      <div class="ed-actions"><button id="ed-reset" class="ghost" type="button">Tout remettre</button><button class="cta" type="submit">Enregistrer et voir</button></div>
+    </form>
   </div>
 
   <!-- ───────── Quotes and invoices (Pro) ───────── -->

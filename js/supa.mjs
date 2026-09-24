@@ -100,3 +100,23 @@ export async function publishSite(slug, payload) {
   if (error) return { error: /pro plan/i.test(error.message) ? 'La mise en ligne est dans la formule Pro.' : /sign in/i.test(error.message) ? 'Connecte-toi d’abord.' : 'Mise en ligne impossible pour le moment.' };
   return { slug: data };
 }
+
+/** Resizes the picture in the browser (max 1600 px, JPEG) and uploads it to the user's folder. Returns { url } or { error }. */
+export async function uploadImage(file) {
+  const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
+  const uid = await userId(sb); if (!uid) return { error: 'Connecte-toi d’abord.' };
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return { error: 'Photo en JPG, PNG ou WebP uniquement.' };
+  let blob = file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', .84));
+  } catch { /* keep the original file */ }
+  if (blob.size > 1900000) return { error: 'Photo trop lourde, même compressée (max 2 Mo).' };
+  const path = `${uid}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const { error } = await sb.storage.from('sites-media').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+  if (error) return { error: 'Envoi impossible. Réessaie dans une minute.' };
+  return { url: `${SUPABASE_URL}/storage/v1/object/public/sites-media/${path}` };
+}

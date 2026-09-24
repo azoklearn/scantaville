@@ -334,6 +334,25 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 .status { display: flex; align-items: center; gap: 4px; min-width: 0; margin-top: 12px; font: 400 10.5px var(--mono); text-transform: uppercase; color: var(--muted); }
 .status .chips { padding: 0 0 0 8px; min-width: 0; flex: 1; }
 /* phone: the generated site is the star, the sales kit stays folded until asked for */
+.demo-edit { width: 100%; margin-top: 8px; }
+.editcard { max-width: 560px; display: grid; gap: 12px; }
+.editcard label { display: grid; gap: 5px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.editcard label small { font-weight: 400; color: var(--muted); }
+.editcard input[type="text"], .editcard textarea { width: 100%; min-height: 42px; padding: 9px 11px; border-radius: 11px; background: var(--bg-2); border: 1.5px solid var(--line); outline: 0; font: 400 15px/1.4 var(--body); color: var(--ink); resize: vertical; }
+.editcard input:focus, .editcard textarea:focus { border-color: var(--blue); background: #fff; }
+.editcard fieldset { border: 0; padding: 12px 0 0; margin: 0; border-top: 1px solid var(--line); }
+.editcard legend { padding: 0; float: left; width: 100%; margin-bottom: 10px; font: 800 14px/1 var(--display); color: var(--ink); } .editcard legend small { font: 400 11px var(--mono); color: var(--muted); margin-left: 6px; }
+.editcard legend + * { clear: both; }
+.ed-photo { display: flex; gap: 12px; align-items: center; }
+.ed-img { width: 120px; height: 68px; border-radius: 10px; background: var(--bg-3) center / cover no-repeat; border: 1px solid var(--line); flex: none; }
+.ed-photo-btns { display: grid; gap: 6px; } .ed-photo-btns .ghost { cursor: pointer; }
+.ed-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 34px; gap: 6px; margin-bottom: 6px; }
+.ed-item .doc-del { border-radius: 10px; font-size: 20px; color: var(--muted); }
+.ed-gal { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.ed-gal div { position: relative; aspect-ratio: 1; border-radius: 10px; background: var(--bg-3) center / cover no-repeat; border: 1px solid var(--line); }
+.ed-gal button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 14px; line-height: 1; }
+.ed-gal-add { cursor: pointer; display: inline-flex; }
+.ed-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .demo-publish { width: 100%; margin-top: 8px; background: var(--ink); }
 .demo-publish:hover { background: var(--blue); }
 #demo-live { margin-top: 8px; word-break: break-all; }

@@ -5,6 +5,7 @@
 //   n name · t trade key · c city · a address · p phone · h OSM opening_hours · la/lo lat/lon
 //   ig/fb social urls · e email · cu cuisine · by author first name · d suggested free domain
 //   v "another style" offset (1..11), absent for the shop's default look
+//   o  edits made by the user: { tg tagline, ab about text, it [[name, desc]...] services, img hero photo url, gal [urls] }
 
 export function encodePayload(obj) {
   const clean = {};

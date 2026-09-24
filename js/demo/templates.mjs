@@ -122,6 +122,22 @@ function signature(m) {
         list, action, h('p', { class: 'sig-note', text: k.note })))));
 }
 
+/** the owner's photo, full-width under the hero; then their own words; then a gallery. All optional. */
+function photoBlock(m) {
+  if (!m.img) return null;
+  return h('section', { class: 'sec sec--photo' }, h('div', { class: 'wrap' }, h('img', { class: 'photo', src: m.img, alt: `Photo de ${m.name}`, loading: 'eager', decoding: 'async' })));
+}
+function aboutBlock(m, head) {
+  if (!m.about) return null;
+  return section('about', 'apropos', head, h('div', { class: 'about' }, m.about.split(/\n+/).map((t) => h('p', { text: t }))));
+}
+function galleryBlock(m, head) {
+  if (!m.gal?.length) return null;
+  return section('gallery', 'photos', head, h('div', { class: 'gallery' }, m.gal.map((u, i) => h('img', { src: u, alt: `Photo ${i + 1} de ${m.name}`, loading: 'lazy', decoding: 'async' }))));
+}
+/** the mock-up note only makes sense while the services are our placeholders */
+function mockNote(m) { return m.edited ? null : h('p', { class: 'mock-note', text: m.fam.note }); }
+
 function section(kind, id, head, ...body) {
   return h('section', { class: `sec sec--${kind}`, id }, h('div', { class: 'wrap' }, head, h('div', { class: 'sec-body' }, body)));
 }
@@ -175,7 +191,7 @@ function salon(m) {
       h('span', { class: 'svc-n', 'aria-hidden': 'true', text: pad2(i + 1) }),
       h('div', { class: 'svc-main' }, h('h3', { class: 'svc-name', text: name }), h('p', { class: 'svc-desc', text: desc })),
       h('span', { class: 'svc-slot', text: m.fam.slot })))),
-    h('p', { class: 'mock-note', text: m.fam.note }));
+    mockNote(m));
 
   const hb = hoursBlock(m);
   const hours = hb && section('hours', 'horaires', head(m.fam.hoursTitle, m.fam.hoursKicker || 'Au plaisir de vous recevoir'), hb);
@@ -186,7 +202,7 @@ function salon(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
+    h('main', null, hero, photoBlock(m), aboutBlock(m, head('À propos', 'Qui nous sommes')), services, galleryBlock(m, head('Photos', 'En images')), ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('div', { class: 'ft-mono', 'aria-hidden': 'true', text: m.mono })),
   ];
 }
@@ -235,7 +251,7 @@ function table(m) {
         h('div', { class: 'dish-row' }, h('h3', { class: 'dish-name', text: name }), h('span', { class: 'dish-dots', 'aria-hidden': 'true' }), h('span', { class: 'dish-slot', text: m.fam.slot })),
         h('p', { class: 'dish-desc', text: desc })))),
       flourish(),
-      h('p', { class: 'mock-note', text: m.fam.note })))));
+      mockNote(m)))));
 
   const hb = hoursBlock(m);
   const hours = hb && section('hours', 'horaires', head(m.fam.hoursTitle, 'Quand passer'), hb);
@@ -246,7 +262,7 @@ function table(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
+    h('main', null, hero, photoBlock(m), aboutBlock(m, head('À propos', 'Qui nous sommes')), services, galleryBlock(m, head('Photos', 'En images')), ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, flourish()),
   ];
 }
@@ -297,7 +313,7 @@ function fournil(m) {
       h('span', { class: 'tag-hole', 'aria-hidden': 'true' }),
       h('h3', { class: 'tag-name', text: name }), h('p', { class: 'tag-desc', text: desc }),
       h('span', { class: 'tag-slot', text: m.fam.slot })))),
-    h('p', { class: 'mock-note', text: m.fam.note }));
+    mockNote(m));
 
   const hb = hoursBlock(m);
   const hours = hb && h('section', { class: 'sec sec--hours', id: 'horaires' }, h('div', { class: 'wrap' },
@@ -313,7 +329,7 @@ function fournil(m) {
   return [
     awning(),
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
+    h('main', null, hero, photoBlock(m), aboutBlock(m, head('À propos', 'Qui nous sommes')), services, galleryBlock(m, head('Photos', 'En images')), ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('div', { class: 'ft-mono', 'aria-hidden': 'true', text: m.mono })),
   ];
 }
@@ -349,7 +365,7 @@ function atelier(m) {
       h('h3', { class: 'spec-name', text: name }),
       h('p', { class: 'spec-desc', text: desc }),
       h('span', { class: 'spec-slot', text: `[ ${m.fam.slot} ]` })))),
-    h('p', { class: 'mock-note', text: m.fam.note }));
+    mockNote(m));
 
   const hb = hoursBlock(m, { style: 'digital', bars: true });
   const hours = hb && section('hours', 'horaires', head(m.fam.hoursTitle, m.hours ? 'Semaine type · 6 h → minuit' : null), hb);
@@ -360,7 +376,7 @@ function atelier(m) {
 
   return [
     h('header', { class: 'hd' }, h('div', { class: 'wrap hd-in' }, brand(m), callLink(m, 'hd-call'))),
-    h('main', null, hero, marquee, services, ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
+    h('main', null, hero, photoBlock(m), marquee, aboutBlock(m, head('À propos', 'Qui nous sommes')), services, galleryBlock(m, head('Photos', 'En images')), ...(m.variant.hoursFirst ? [hours, signature(m)] : [signature(m), hours]), loc, contact),
     footer(m, h('p', { class: 'ft-giant', 'aria-hidden': 'true', text: m.name })),
   ];
 }
