@@ -388,7 +388,7 @@ const quiz = { hours: 0, perDay: 0, done: false };
 function openQuiz() {
   const { data } = state; if (!data) return;
   quiz.hours = quiz.perDay = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €'; $('#quiz-price').value = 400;
-  $('#quiz-city').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads); $('#quiz-city2').textContent = data.name;
+  $('#quiz-city').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads); 
   $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
   openOverlay('#quiz');
 }
@@ -400,7 +400,6 @@ function quizResult() {
   const contacts = Math.min(total, perDay * WORK_DAYS);
   const sales = Math.max(1, Math.round(contacts / CONTACTS_PER_SALE));
   quizCalc = { contacts, sales, total };
-  $('#quiz-contacts').textContent = fr(contacts); $('#quiz-sales').textContent = fr(sales); $('#quiz-left').textContent = fr(Math.max(0, total - contacts));
   track('quiz', { hours: quiz.hours, perDay: quiz.perDay });
   const step = $('.quiz-step[data-step="2"]');
   $$('.quiz-step').forEach((x) => { x.hidden = x.dataset.step !== '2'; });
