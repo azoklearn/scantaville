@@ -209,7 +209,8 @@ document.addEventListener('click', (ev) => {
 
 /** scantaville.fr/site/<slug> -> published site from the database; anything else -> hash mock-up */
 async function boot() {
-  const slug = new URLSearchParams(location.search).get('s');
+  // scantaville.fr/site/<slug> is a server rewrite: the browser still shows /site/<slug>, so read the path too
+  const slug = new URLSearchParams(location.search).get('s') || (/^\/site\/([a-z0-9-]{3,80})\/?$/.exec(location.pathname) || [])[1];
   if (slug && /^[a-z0-9-]{3,80}$/.test(slug) && SUPABASE_URL) {
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/site_get`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ p_slug: slug }) });
