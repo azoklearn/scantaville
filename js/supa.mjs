@@ -120,3 +120,9 @@ export async function uploadImage(file) {
   if (error) return { error: 'Envoi impossible. Réessaie dans une minute.' };
   return { url: `${SUPABASE_URL}/storage/v1/object/public/sites-media/${path}` };
 }
+
+export async function mySites() {
+  const sb = await client(); if (!sb) return [];
+  const { data, error } = await sb.rpc('my_sites');
+  return error || !Array.isArray(data) ? [] : data;
+}

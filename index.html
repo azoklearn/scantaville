@@ -326,7 +326,7 @@
 
   <div id="auth" class="overlay" hidden>
     <div class="overlay-bg" data-close></div>
-    <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <article class="paycard authcard" role="dialog" aria-modal="true" aria-labelledby="auth-title">
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
       <p class="kicker"><i class="dot"></i> Ton compte</p>
       <h2 id="auth-title">Crée ton compte</h2>
@@ -338,9 +338,19 @@
         <button id="auth-switch" class="link" type="button">J'ai déjà un compte</button>
       </form>
       <div id="auth-me" hidden>
-        <p class="muted">Connecté avec <b id="auth-email"></b></p>
-        <p class="muted">Formule : <b id="auth-plan" class="accent"></b></p>
-        <button id="auth-out" class="ghost" type="button">Se déconnecter</button>
+        <p class="me-line"><span>Connecté avec <b id="auth-email"></b></span><button id="auth-out" class="link" type="button">Se déconnecter</button></p>
+        <p class="me-line"><span>Formule : <b id="auth-plan" class="accent"></b></span><button id="auth-upgrade" class="link" type="button">Changer</button></p>
+        <div class="me-tabs" role="tablist">
+          <button type="button" role="tab" data-tab="prospects" aria-selected="true">Prospects</button>
+          <button type="button" role="tab" data-tab="sites" aria-selected="false">Mes sites</button>
+          <button type="button" role="tab" data-tab="stats" aria-selected="false">Bilan</button>
+        </div>
+        <section id="me-prospects" class="me-tab">
+          <div id="me-filters" class="chips"></div>
+          <ol id="me-list" class="me-list"></ol>
+        </section>
+        <section id="me-sites" class="me-tab" hidden><ol id="me-sites-list" class="me-list"></ol></section>
+        <section id="me-stats" class="me-tab" hidden><div id="me-kpis" class="me-kpis"></div><p id="me-goal" class="muted"></p></section>
       </div>
       <p class="fine">Ton suivi de prospects est sauvegardé sur ton compte et te suit d'un appareil à l'autre.</p>
     </article>

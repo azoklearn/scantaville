@@ -70,6 +70,9 @@ export const peekDocSeq = (type, year) => (read('docseq', {})[type]?.[year] || 0
 export function bumpDocSeq(type, year, seq) { const c = read('docseq', {}); c[type] = c[type] || {}; c[type][year] = Math.max(c[type][year] || 0, seq); write('docseq', c); }
 export const setCurrentDoc = (d) => write('doc.current', d); // read by doc.html (same origin), never put in a URL
 
+export const getBuilt = () => read('built', {});
+export function rememberBuilt(lead, city, insee) { const b = getBuilt(); b[lead.id] = { name: lead.name, city, insee, trade: lead.trade, ts: b[lead.id]?.ts || Date.now() }; write('built', b); }
+
 export const getEdits = (id) => read('edits', {})[id] || null;
 export function setEdits(id, o) { const all = read('edits', {}); if (o) all[id] = o; else delete all[id]; write('edits', all); }
 

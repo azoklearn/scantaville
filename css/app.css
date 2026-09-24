@@ -472,7 +472,27 @@ body[data-state="scanning"] #panel, body[data-state="scanning"] #dock { transfor
 /* results are behind the account: the reveal plays, then the list and tools wait for sign-up */
 body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !important; }
 .gate-btn { position: fixed; z-index: 24; left: 50%; bottom: calc(28px + var(--safe-b)); transform: translateX(-50%); white-space: nowrap; }
-#auth-me { display: grid; gap: 8px; margin: 16px 0 10px; }
+#auth-me { display: grid; gap: 10px; margin: 14px 0 6px; }
+.authcard[data-me="1"] { max-width: 560px; }
+.me-line { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 14px; color: var(--ink-2); }
+.me-line b { color: var(--ink); }
+.me-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 4px; }
+.me-tabs button { padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.me-tabs button[aria-selected="true"] { color: var(--blue); border-bottom-color: var(--blue); }
+.me-tab .chips { padding: 8px 0 6px; }
+.me-list { list-style: none; padding: 0; margin: 0; max-height: 46dvh; overflow-y: auto; display: grid; gap: 4px; }
+.me-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); }
+.me-list li b { display: block; font-size: 14.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-list li small { display: block; font-size: 12px; color: var(--muted); }
+.me-list li .st { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 999px; background: #fff; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.me-list li .st.won { background: var(--ok); border-color: var(--ok); color: #fff; }
+.me-list li .st.meeting { border-color: var(--blue); color: var(--blue); }
+.me-list li .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.me-list .empty { justify-content: center; color: var(--muted); font-size: 13.5px; text-align: center; grid-template-columns: 1fr; }
+.me-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.me-kpis div { padding: 12px; border-radius: 12px; background: var(--bg-2); }
+.me-kpis b { display: block; font: 900 28px/1 var(--display); letter-spacing: -.03em; color: var(--blue); }
+.me-kpis span { font: 400 10.5px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 #btn-account { min-height: 38px; padding: 0 12px; font-size: 13px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #waitlist { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 10px; }
 #waitlist input { height: 50px; padding: 0 14px; border-radius: 13px; background: var(--bg-2); border: 1.5px solid var(--line); outline: 0; font-size: 16px; color: var(--ink); }

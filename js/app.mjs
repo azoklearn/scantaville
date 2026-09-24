@@ -585,7 +585,7 @@ $('#btn-build').addEventListener('click', async () => {
   const l = state.lead;
   store.setAuthor($('#author').value);
   if (!store.canBuild(l.id)) { $('#lead').hidden = true; return openPaywall(store.planLevel() === 0 ? 'Les maquettes de sites commencent à la formule Essentiel.' : `Tu as utilisé tes ${store.demoLimit()} maquettes du jour.`, { minLevel: Math.min(3, store.planLevel() + 1) }); }
-  store.countBuild(l.id);
+  store.countBuild(l.id); store.rememberBuilt(l, state.data.name, state.data.insee);
   track('demo_generated', { trade: l.trade });
   const t0 = performance.now();
   state.demoUrl = demoUrlFor(l);
@@ -941,13 +941,52 @@ if (supa.enabled) {
   });
   $('#gate-btn').addEventListener('click', () => askAccount());
   $('#auth-out').addEventListener('click', async () => { await supa.signOut(); closeOverlays(); toast('Déconnecté.'); });
+  $('#auth-upgrade').addEventListener('click', () => { $('#auth').hidden = true; openPaywall(); });
+
+  // ── "Mon compte": prospects contacted, sites built and published, a monthly report ──
+  const me = { tab: 'prospects', filter: 'all', sites: [] };
+  $$('.me-tabs [data-tab]').forEach((b) => b.addEventListener('click', () => { me.tab = b.dataset.tab; renderMe(); }));
+  const rowLead = (id, p) => ({ id, name: p.name, city: p.city, status: p.status, ts: p.ts || 0 });
+  async function renderMe() {
+    $$('.me-tabs [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === me.tab)));
+    $$('.me-tab').forEach((s) => { s.hidden = s.id !== 'me-' + me.tab; });
+    const pipe = store.getPipeline(), built = store.getBuilt();
+    const rows = Object.entries(pipe).map(([id, p]) => rowLead(id, p)).sort((a, b) => b.ts - a.ts);
+    if (me.tab === 'prospects') {
+      const counts = {}; for (const r of rows) counts[r.status] = (counts[r.status] || 0) + 1;
+      $('#me-filters').replaceChildren(el('button', { class: 'chip', type: 'button', 'aria-pressed': String(me.filter === 'all'), onclick: () => { me.filter = 'all'; renderMe(); } }, 'Tous', el('small', { text: String(rows.length) })),
+        ...store.STATUSES.filter((s) => counts[s.key]).map((s) => el('button', { class: 'chip', type: 'button', 'aria-pressed': String(me.filter === s.key), onclick: () => { me.filter = s.key; renderMe(); } }, s.label, el('small', { text: String(counts[s.key]) }))));
+      const shown = rows.filter((r) => me.filter === 'all' || r.status === me.filter);
+      $('#me-list').replaceChildren(...(shown.length ? shown.map((r) => el('li', {},
+        el('div', {}, el('b', { text: r.name }), el('small', { text: [r.city, r.ts ? new Date(r.ts).toLocaleDateString('fr-FR') : ''].filter(Boolean).join(' · ') })),
+        el('span', { class: 'st ' + r.status, text: store.STATUSES.find((s) => s.key === r.status)?.label || r.status })))
+        : [el('li', { class: 'empty', text: 'Aucun prospect suivi pour l’instant. Ouvre un commerce, génère sa maquette et marque-le « contacté ».' })]));
+    } else if (me.tab === 'sites') {
+      const pub = new Map(me.sites.map((s) => [`${s.name}|${s.city}`, s]));
+      const items = Object.entries(built).sort((a, b) => b[1].ts - a[1].ts).map(([id, b]) => ({ id, ...b, live: pub.get(`${b.name}|${b.city}`) }));
+      for (const s of me.sites) if (!items.some((i) => i.live === s)) items.push({ id: null, name: s.name, city: s.city, ts: Date.parse(s.created_at), live: s });
+      $('#me-sites-list').replaceChildren(...(items.length ? items.map((it) => el('li', {},
+        el('div', {}, el('b', { text: it.name }), el('small', { text: [it.city, it.live ? 'en ligne' : 'maquette', it.ts ? new Date(it.ts).toLocaleDateString('fr-FR') : ''].filter(Boolean).join(' · ') })),
+        el('div', { class: 'acts' }, it.live ? el('a', { class: 'ghost small', href: `${location.origin}/site/${it.live.slug}`, target: '_blank', rel: 'noopener', text: 'Voir ↗' }) : null,
+          it.id && it.insee ? el('button', { class: 'ghost small', type: 'button', text: 'Ouvrir', onclick: () => { $('#auth').hidden = true; if (state.data?.insee === it.insee) { const l = state.data.leads.find((x) => x.id === it.id); if (l) openLead(l, true); } else location.href = `${location.pathname}?v=${it.insee}`; } }) : null)))
+        : [el('li', { class: 'empty', text: 'Aucun site généré pour l’instant.' })]));
+    } else {
+      const won = rows.filter((r) => r.status === 'won').length, contacted = rows.filter((r) => r.status !== 'todo').length, month = Date.now() - 30 * 864e5;
+      const kpi = (n, l) => el('div', {}, el('b', { text: String(n) }), el('span', { text: l }));
+      $('#me-kpis').replaceChildren(kpi(contacted, 'commerces contactés'), kpi(rows.filter((r) => r.status === 'meeting').length, 'rendez-vous'), kpi(won, 'sites signés'), kpi(fr(won * 400) + ' €', 'à 400 € le site'), kpi(Object.keys(built).length, 'maquettes générées'), kpi(me.sites.length, 'sites en ligne'));
+      const recent = rows.filter((r) => r.ts > month && r.status !== 'todo').length;
+      $('#me-goal').textContent = quiz.goal ? `Objectif : ${fr(quiz.goal)} € par mois, soit ${Math.ceil(quiz.goal / 400)} sites. Ce mois-ci : ${recent} commerce${recent > 1 ? 's' : ''} contacté${recent > 1 ? 's' : ''}, ${rows.filter((r) => r.ts > month && r.status === 'won').length} signé(s).` : `Ce mois-ci : ${recent} commerce${recent > 1 ? 's' : ''} contacté${recent > 1 ? 's' : ''}. Lance un scan et choisis un objectif pour suivre ta progression.`;
+    }
+  }
+  btn.addEventListener('click', async () => { if (state.user) { me.sites = await supa.mySites(); renderMe(); } });
 
   let lastPlan;
   supa.onAuth(async ({ user, plan }) => {
     state.user = user; state.gateTitle = ''; updateGate();
     store.setServerPlan(user ? plan : null);
     btn.textContent = user ? (user.email || 'Mon compte') : 'Connexion';
-    $('#auth-form').hidden = !!user; $('#auth-sub').hidden = !!user; $('#auth-me').hidden = !user;
+    $('#auth-form').hidden = !!user; $('#auth-sub').hidden = !!user; $('#auth-me').hidden = !user; $('.authcard').dataset.me = user ? '1' : '0';
+    if (user) $('#auth-title').textContent = 'Mon compte';
     if (user) { $('#auth-email').textContent = user.email || ''; $('#auth-plan').textContent = planById(store.getPlanId())?.name || 'Découverte'; store.mergePipeline(await supa.pullPipeline()); }
     renderPlans(); refreshLocks();
     // the unlocked shops depend on the plan: reload the city when it changes under our feet
