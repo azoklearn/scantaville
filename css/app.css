@@ -595,3 +595,32 @@ body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !importa
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   h1 span, .lede, #search, .quick, .proof { opacity: 1; transform: none; }
 }
+
+/* ───────── Quiz: full screen (it is the TikTok beat) ───────── */
+#quiz { place-items: stretch; }
+#quiz .overlay-bg { background: #fff; backdrop-filter: none; }
+#quiz .quizcard { max-width: none; max-height: none; width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; animation: fade .3s ease both;
+  display: flex; flex-direction: column; justify-content: center; padding: 24px clamp(20px, 6vw, 80px) calc(28px + var(--safe-b)); background: #fff; }
+#quiz .quizcard > * { width: min(100%, 720px); margin-left: auto; margin-right: auto; }
+#quiz .x { top: 14px; right: 14px; }
+#quiz .kicker { font-size: 13px; }
+#quiz .quizcard h2 { font-size: clamp(30px, 6vw, 56px); margin: 14px auto 8px; }
+#quiz .quiz-q { font-size: clamp(18px, 3vw, 26px); margin: 22px 0 16px; }
+#quiz .quiz-opts { gap: 12px; }
+#quiz .quiz-opts button { padding: 20px 22px; font-size: clamp(24px, 4vw, 34px); border-radius: 20px; }
+#quiz .quiz-opts button small { font-size: 14px; }
+#quiz .quiz-price { padding: 18px 22px 14px; border-radius: 20px; }
+#quiz .quiz-price b { font-size: clamp(28px, 4vw, 40px); }
+#quiz .quiz-price input { height: 34px; }
+#quiz .quiz-big b { font-size: clamp(72px, 17vw, 168px); line-height: .95; }
+#quiz .quiz-big span { font-size: clamp(14px, 2vw, 18px); }
+#quiz .quiz-result .cta { min-height: 60px; font-size: 20px; margin-top: 10px; }
+#quiz .quiz-result .fine { margin-top: 12px; font-size: 13px; }
+#quiz .quiz-coins { border-radius: 0; }
+#quiz .quiz-coins i { animation-name: coin-full; }
+@keyframes coin-full { 0% { transform: translateY(0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
+@media (min-width: 900px) { #quiz { place-items: stretch; } }
+#quiz .quizcard { overflow-y: auto; justify-content: safe center; padding-top: 64px; }
+#quiz .quizcard h2 { font-size: clamp(26px, 4.6vw, 44px); }
+#quiz .quiz-big b { font-size: clamp(64px, 14vw, 140px); }
+#quiz .quiz-result .quiz-q { margin-top: 14px; }
