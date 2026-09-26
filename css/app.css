@@ -94,6 +94,19 @@ body[data-state="landing"] .top { background: rgba(255,255,255,.9); backdrop-fil
 .rec-toggle span { display: none; }
 @keyframes rec { 50% { opacity: .45; } }
 
+/* ───────── FAQ ───────── */
+.faq { position: relative; z-index: 10; background: #fff; max-width: none; padding: 80px 20px 40px; }
+.faq > * { max-width: 680px; margin-left: auto; margin-right: auto; }
+.faq h2 { font: 800 clamp(30px, 7vw, 48px)/1 var(--display); letter-spacing: -.045em; color: var(--ink); margin-bottom: 28px; text-align: center; }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 2px; font-size: 17px; font-weight: 600; color: var(--ink); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; flex: none; font-size: 22px; font-weight: 400; color: var(--blue); transition: transform .3s var(--ease); }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding: 0 2px 20px; color: var(--ink-2); font-size: 15.5px; line-height: 1.6; animation: rise .4s var(--ease) both; opacity: 0; transform: translateY(-4px); }
+.faq-foot { margin-top: 48px; text-align: center; font-size: 12px; color: var(--muted); }
+.faq-foot a { color: inherit; }
+
 /* ───────── Hero (minimal) ───────── */
 #hero {
   position: relative; z-index: 10; min-height: 100dvh;
