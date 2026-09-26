@@ -99,6 +99,18 @@ map.on('mousemove', (e) => {
 });
 
 // ───────────────────────── Landing ─────────────────────────
+// the "virement reçu" notification over the headline: cycles a few examples (illustration, not real payments)
+{
+  const box = $('#notif'), body = $('#notif-body');
+  const ex = ['+490,00 € · Boulangerie Martin', '+650,00 € · Salon Léa Coiffure', '+390,00 € · Garage du Centre', '+520,00 € · Le Petit Bistrot'];
+  let i = 0;
+  if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => {
+    if (document.body.dataset.state !== 'landing' || document.hidden) return;
+    box.classList.remove('swap'); void box.offsetWidth; box.classList.add('swap');
+    setTimeout(() => { body.textContent = ex[i = (i + 1) % ex.length]; }, 270);
+  }, 3600);
+}
+
 loadIndex().then((index) => {
   state.index = index;
   const cities = index.cities || [];
