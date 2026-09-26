@@ -103,13 +103,9 @@ loadIndex().then((index) => {
   state.index = index;
   const cities = index.cities || [];
   if (!cities.length) return;
-  $('#p-cities').textContent = fr(cities.length);
-  $('#p-leads').textContent = fr(cities.reduce((s, c) => s + (c.leads || 0), 0));
   const max = Math.max(...cities.map((c) => c.leads || 1));
   fog.setGlints(cities.filter((c) => c.center).map((c) => ({ center: c.center, weight: (c.leads || 1) / max })));
-  for (const box of [$('#quick'), $('#quiz-quick')].filter(Boolean)) for (const c of [...cities].sort((a, b) => b.leads - a.leads).slice(0, 8)) {
-    box.append(el('button', { type: 'button', onclick: () => scan(c) }, c.name, el('small', { text: fr(c.leads) })));
-  }
+
 });
 
 // deep link: ?v=37261 (what a "commente ta ville" reply video links to)
@@ -841,6 +837,7 @@ const perkNode = (p) => el('li', { class: /^Tout /.test(p.text) ? 'inherit' : nu
 
 function renderPlans() {
   const box = $('#plans'), current = store.getPlanId();
+  if (!box) return;
   box.replaceChildren(...PLANS.map((p) => {
     const save = savingPct(p);
     return el('article', { class: 'plan' + (p.popular ? ' popular' : '') + (p.id === current ? ' current' : '') },
