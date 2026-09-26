@@ -107,9 +107,8 @@ loadIndex().then((index) => {
   $('#p-leads').textContent = fr(cities.reduce((s, c) => s + (c.leads || 0), 0));
   const max = Math.max(...cities.map((c) => c.leads || 1));
   fog.setGlints(cities.filter((c) => c.center).map((c) => ({ center: c.center, weight: (c.leads || 1) / max })));
-  const quick = $('#quick');
-  for (const c of [...cities].sort((a, b) => b.leads - a.leads).slice(0, 8)) {
-    quick.append(el('button', { type: 'button', onclick: () => scan(c) }, c.name, el('small', { text: fr(c.leads) })));
+  for (const box of [$('#quick'), $('#quiz-quick')].filter(Boolean)) for (const c of [...cities].sort((a, b) => b.leads - a.leads).slice(0, 8)) {
+    box.append(el('button', { type: 'button', onclick: () => scan(c) }, c.name, el('small', { text: fr(c.leads) })));
   }
 });
 
@@ -176,7 +175,7 @@ function fitOptions() {
 async function scan(city) {
   if (document.body.dataset.state === 'scanning') return;
   sound.unlock();
-  input.blur(); suggest.hidden = true;
+  input.blur(); suggest.hidden = true; $('#quiz').hidden = true;
   window.scrollTo({ top: 0 });
   document.body.dataset.state = 'scanning';
   state.city = city; state.trade = 'all'; state.tiers = { gold: true, social: true }; state.listLimit = 200;
@@ -244,7 +243,7 @@ function landed() {
   }
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
-  setTimeout(openQuiz, 900); // let the number land, then the quiz; account and plans come after its result
+  setTimeout(() => (quiz.ready ? showResult() : openQuiz()), 900); // let the number land; the plan (or the quiz if it was skipped) follows
 }
 
 /** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
@@ -387,16 +386,50 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverl
 // The plan is built from the goal: sites needed, shops to contact per week, time per site. Same "1 yes for 2
 // contacts" ratio as elsewhere (CONTACTS_PER_SALE) and 400 EUR per site; both are shown, never hidden.
 const SITE_PRICE = 400, CONTACTS_PER_SALE = 2, MIN_PER_CONTACT = 10, MIN_PER_SITE = 120;
-const quiz = { goal: 0, hours: 0, done: false };
-let quizCalc = null, countRaf = 0;
-function openQuiz() {
-  const { data } = state; if (!data) return;
-  quiz.goal = quiz.hours = 0; quiz.done = false; quizCalc = null; $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
-  $('#quiz-city').textContent = data.name; $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
-  $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '0'; });
-  $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
-  openOverlay('#quiz');
+const quiz = { profile: '', goal: 0, hours: 0, skill: '', social: '', done: false, ready: false };
+const STEPS = ['profile', 'goal', 'hours', 'skill', 'social', 'city', 'result'];
+const REACT = {
+  profile: { student: 'Parfait : les commerces autour du campus sont souvent les premiers à dire oui.', job: 'Le soir et le week-end suffisent pour commencer. On calibre le plan là-dessus.', free: 'Tu as déjà le statut : il ne te manque que les clients. On va les trouver.', none: 'Aucun diplôme, aucun capital : juste des commerces à contacter. On démarre.' },
+  hours: { 2: '2 h, c’est un site par mois. Petit, mais c’est un début.', 5: '5 h par semaine, ça suffit pour plusieurs sites par mois.', 10: '10 h par semaine : tu peux en faire un vrai revenu.', 20: '20 h et plus : tu es en mode agence.' },
+  skill: { no: 'Aucun souci : ScanTaVille génère le site en 1 seconde, tu n’as rien à coder.', tools: 'Tu pars avec de l’avance : la maquette est prête, tu la peaufines avec tes outils.', yes: 'Tu vends d’abord, tu codes ensuite. La maquette sert à décrocher le oui.' },
+  social: { easy: 'Le script « en boutique » est fait pour toi : 6 lignes, et tu montres le site.', ok: 'Tu auras le script mot pour mot, et les réponses aux objections.', shy: 'On commence par les DM Insta et les e-mails : tout est écrit, tu n’as qu’à envoyer.' },
+};
+/** shows one step: progress bar, word-by-word question, optional reaction to the previous answer */
+function showStep(name, reaction) {
+  const i = STEPS.indexOf(name);
+  $('#quiz-bar').style.width = Math.round(((i + 1) / STEPS.length) * 100) + '%';
+  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'city' ? 'Dernière étape' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
+  const r = $('#quiz-react'); r.hidden = !reaction; if (reaction) { r.textContent = reaction; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = ''; }
+  $$('.quiz-step').forEach((sec) => { sec.hidden = sec.dataset.step !== name; if (!sec.hidden) { sec.style.animation = 'none'; void sec.offsetWidth; sec.style.animation = ''; } });
+  const q = $(`.quiz-step[data-step="${name}"] .qq`);
+  if (q && !q.dataset.words) { q.dataset.words = q.textContent; }
+  if (q) { const words = q.dataset.words.split(' '); q.replaceChildren(...words.flatMap((w, k) => [el('span', { class: 'w', style: `animation-delay:${k * 70}ms`, text: w }), ' '])); }
+  if (name === 'city') setTimeout(() => input.focus({ preventScroll: true }), 350);
+  $('.quizcard').scrollTop = 0;
 }
+/** entry from the landing button: the pre-scan steps, city last */
+function startQuiz() {
+  quiz.done = false; quiz.ready = false; quizCalc = null;
+  $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
+  $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
+  showStep('profile'); openOverlay('#quiz');
+  track('quiz_start');
+}
+/** entry after a scan launched without the quiz (quick chip, deep link): same steps, the city is known */
+function openQuiz() {
+  if (!state.data) return;
+  quiz.done = false; quiz.ready = false; quizCalc = null;
+  $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
+  $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
+  showStep('profile'); openOverlay('#quiz');
+}
+function showResult() {
+  const { data } = state; if (!data) return;
+  $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
+  $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
+  quizResult(); openOverlay('#quiz');
+}
+let quizCalc = null, countRaf = 0;
 function quizResult() {
   if (!state.data) return;
   const total = state.data.stats.leads, city = state.data.name;
@@ -411,8 +444,8 @@ function quizResult() {
   const plan = [
     ['Objectif : ', el('b', { text: `${sites} site${sites > 1 ? 's' : ''} vendu${sites > 1 ? 's' : ''} par mois` }), ` à ${fr(SITE_PRICE)} € = ${fr(sites * SITE_PRICE)} €.`],
     ['Contacter ', el('b', { text: `${contacts} commerces dans le mois` }), `, soit ${perWeek} par semaine (${perContactDay} par sortie, 3 sorties) : un oui pour ${CONTACTS_PER_SALE} contacts, ça fait ${sites} vente${sites > 1 ? 's' : ''}.`],
-    ['Pour chacun, ', el('b', { text: 'générer sa maquette en 1 seconde' }), ' et la montrer sur ton téléphone : « je vous ai déjà fait votre site ».'],
-    ['Suivre ', el('b', { text: 'le script de vente et les réponses aux objections' }), ', encaisser un acompte avec le devis intégré.'],
+    ['Pour chacun, ', el('b', { text: 'générer sa maquette en 1 seconde' }), quiz.skill === 'no' ? ' : rien à coder, tu la montres sur ton téléphone : « je vous ai déjà fait votre site ».' : ' et la montrer sur ton téléphone : « je vous ai déjà fait votre site ».'],
+    [quiz.social === 'shy' ? 'Contacter par ' : 'Suivre ', el('b', { text: quiz.social === 'shy' ? 'DM Insta et e-mail, avec les scripts déjà écrits' : 'le script de vente et les réponses aux objections' }), ', encaisser un acompte avec le devis intégré.'],
     [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`],
   ];
   $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, el('span', {}, ...parts)))); // one cell after the number: inline text
@@ -421,8 +454,8 @@ function quizResult() {
     : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
   $('#quiz-sites').textContent = String(sites);
   track('quiz', { goal: quiz.goal, hours: quiz.hours });
-  const step = $('.quiz-step[data-step="2"]');
-  $$('.quiz-step').forEach((x) => { x.hidden = x.dataset.step !== '2'; });
+  showStep('result');
+  const step = $('.quiz-step[data-step="result"]');
   for (const n of $$('.quiz-plan li, .quiz-close, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
   showEuros(quiz.goal);
 }
@@ -458,13 +491,21 @@ function drawGauge() {
   quiz.goal = v;
 }
 $('#goal-gauge').addEventListener('input', drawGauge);
-$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); $$('.quiz-step').forEach((s) => { s.hidden = s.dataset.step !== '1'; }); });
+$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('hours', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. Voyons ton temps.`); });
 
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  quiz[box.dataset.key] = Number(b.dataset.v);
-  quizResult();
+  const key = box.dataset.key, v = b.dataset.v;
+  quiz[key] = key === 'hours' ? Number(v) : v;
+  $$('button', box).forEach((x) => x.classList.toggle('picked', x === b));
+  const next = STEPS[STEPS.indexOf(key) + 1];
+  setTimeout(() => {
+    if (next === 'city' && state.data) { quiz.ready = true; showResult(); return; } // city already scanned (chip / link)
+    if (next === 'city') quiz.ready = true;
+    showStep(next, REACT[key]?.[v]);
+  }, 380);
 }));
+$('#hero-start').addEventListener('click', startQuiz);
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
 function afterQuiz() {
   quiz.done = true; $('#quiz').hidden = true;
@@ -472,7 +513,7 @@ function afterQuiz() {
   else if (store.planLevel() === 0) lockedPaywall();
 }
 $('#quiz-go').addEventListener('click', afterQuiz);
-for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done) afterQuiz(); });
+for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done && state.data) afterQuiz(); });
 
 function lockedPaywall() {
   const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;

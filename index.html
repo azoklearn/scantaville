@@ -53,16 +53,7 @@
     </h1>
     <p class="lede">Scanne ta ville. Chaque point bleu est un commerce à qui tu peux vendre son site, et la maquette se génère en une seconde. <strong>1&nbsp;oui&nbsp;=&nbsp;490&nbsp;€.</strong></p>
 
-    <form id="search" autocomplete="off" role="search">
-      <div class="field">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-        <select id="country" aria-label="Pays"></select>
-        <input id="city" type="text" inputmode="search" placeholder="Tape ta ville…" aria-label="Ta ville" aria-autocomplete="list" aria-controls="suggest" spellcheck="false">
-        <button id="go" type="submit"><span>Scanner ma ville</span></button>
-      </div>
-      <ul id="suggest" role="listbox" hidden></ul>
-    </form>
-
+    <button id="hero-start" class="cta hero-start" type="button"><span>Trouver les commerces de ma ville</span><small>Gratuit · 1 minute · sans carte bancaire</small></button>
     <div id="quick" class="quick" aria-label="Villes déjà scannées"></div>
 
     <ul class="proof">
@@ -286,12 +277,21 @@
     <div class="overlay-bg" data-close></div>
     <article class="paycard quizcard" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
-      <p class="kicker"><i class="dot"></i> <span id="quiz-city"></span></p>
-      <h2 id="quiz-title"><b id="quiz-count" class="accent"></b> commerces sans site web à <span id="quiz-city-h"></span>.</h2>
-      <p id="quiz-sub" class="muted">Chacun est un client potentiel pour un site à 400 €. Voyons ce que ça peut te rapporter.</p>
+      <div class="quiz-progress" aria-hidden="true"><i id="quiz-bar"></i></div>
+      <p class="kicker"><i class="dot"></i> <span id="quiz-kicker">Ton plan en 1 minute</span></p>
+      <p id="quiz-react" class="quiz-react" hidden></p>
       <div id="quiz-steps">
-        <section class="quiz-step" data-step="0">
-          <p class="quiz-q">Combien tu veux gagner par mois ?</p>
+        <section class="quiz-step" data-step="profile">
+          <h2 class="quiz-h qq">Tu es plutôt…</h2>
+          <div class="quiz-opts" data-key="profile">
+            <button type="button" data-v="student"><i>🎓</i>Étudiant<small>je veux un revenu à côté des cours</small></button>
+            <button type="button" data-v="job"><i>💼</i>Salarié<small>je veux un complément, puis plus</small></button>
+            <button type="button" data-v="free"><i>🚀</i>Freelance / auto-entrepreneur<small>je cherche des clients</small></button>
+            <button type="button" data-v="none"><i>🔥</i>Sans activité<small>je veux démarrer vite</small></button>
+          </div>
+        </section>
+        <section class="quiz-step" data-step="goal" hidden>
+          <h2 class="quiz-h qq">Combien tu veux gagner par mois ?</h2>
           <div class="gauge">
             <p class="gauge-val"><b id="goal-val">1 000 €</b><span id="goal-tag">un vrai à-côté</span></p>
             <div class="gauge-track"><div id="gauge-fill" class="gauge-fill"></div><div id="gauge-ticks" class="gauge-ticks" aria-hidden="true"></div></div>
@@ -301,16 +301,48 @@
           </div>
           <button id="goal-next" class="cta" type="button">C'est mon objectif →</button>
         </section>
-        <section class="quiz-step" data-step="1" hidden>
-          <p class="quiz-q">Combien de temps as-tu par semaine ?</p>
+        <section class="quiz-step" data-step="hours" hidden>
+          <h2 class="quiz-h qq">Combien de temps as-tu par semaine ?</h2>
           <div class="quiz-opts" data-key="hours">
-            <button type="button" data-v="2">2 h<small>le soir, de temps en temps</small></button>
-            <button type="button" data-v="5">5 h<small>quelques soirs</small></button>
-            <button type="button" data-v="10">10 h<small>les week-ends</small></button>
-            <button type="button" data-v="20">20 h et +<small>à fond</small></button>
+            <button type="button" data-v="2"><i>🌙</i>2 h<small>le soir, de temps en temps</small></button>
+            <button type="button" data-v="5"><i>📅</i>5 h<small>quelques soirs</small></button>
+            <button type="button" data-v="10"><i>☀️</i>10 h<small>les week-ends</small></button>
+            <button type="button" data-v="20"><i>⚡</i>20 h et +<small>à fond</small></button>
           </div>
         </section>
-        <section class="quiz-step quiz-result" data-step="2" hidden>
+        <section class="quiz-step" data-step="skill" hidden>
+          <h2 class="quiz-h qq">Tu sais créer un site ?</h2>
+          <div class="quiz-opts" data-key="skill">
+            <button type="button" data-v="no"><i>🙅</i>Pas du tout<small>et je ne veux pas coder</small></button>
+            <button type="button" data-v="tools"><i>🧩</i>Avec des outils<small>Wix, Lovable, Canva…</small></button>
+            <button type="button" data-v="yes"><i>💻</i>Oui<small>je code ou je maîtrise un CMS</small></button>
+          </div>
+        </section>
+        <section class="quiz-step" data-step="social" hidden>
+          <h2 class="quiz-h qq">Parler à un commerçant, c'est…</h2>
+          <div class="quiz-opts" data-key="social">
+            <button type="button" data-v="easy"><i>😎</i>Facile<small>je pousse la porte sans souci</small></button>
+            <button type="button" data-v="ok"><i>🙂</i>Ça dépend<small>avec un script, ça va</small></button>
+            <button type="button" data-v="shy"><i>😬</i>Stressant<small>je préfère écrire</small></button>
+          </div>
+        </section>
+        <section class="quiz-step" data-step="city" hidden>
+          <h2 class="quiz-h qq">Dans quelle ville tu veux tes clients ?</h2>
+          <p class="muted">On scanne les commerces sans site web autour de toi. Le scan est gratuit.</p>
+    <form id="search" autocomplete="off" role="search">
+      <div class="field">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <select id="country" aria-label="Pays"></select>
+        <input id="city" type="text" inputmode="search" placeholder="Tape ta ville…" aria-label="Ta ville" aria-autocomplete="list" aria-controls="suggest" spellcheck="false">
+        <button id="go" type="submit"><span>Scanner</span></button>
+      </div>
+      <ul id="suggest" role="listbox" hidden></ul>
+    </form>
+
+          <div id="quiz-quick" class="quick" aria-label="Villes déjà scannées"></div>
+        </section>
+        <section class="quiz-step quiz-result" data-step="result" hidden>
+          <h2 id="quiz-title" class="quiz-h"><b id="quiz-count" class="accent"></b> commerces sans site web à <span id="quiz-city-h"></span>.</h2>
           <p class="quiz-q">Ton objectif</p>
           <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, avec <b id="quiz-sites"></b> site(s) vendu(s) à 400 €</span></p>
           <div class="quiz-coins" aria-hidden="true"></div>
