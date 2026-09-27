@@ -99,16 +99,27 @@ map.on('mousemove', (e) => {
 });
 
 // ───────────────────────── Landing ─────────────────────────
-// the "virement reçu" notification over the headline: cycles a few examples (illustration, not real payments)
+// the phone next to the headline receives "virement reçu" notifications (illustration, not real payments)
 {
-  const box = $('#notif'), body = $('#notif-body');
-  const ex = ['+490,00 € · Boulangerie Martin', '+650,00 € · Salon Léa Coiffure', '+390,00 € · Garage du Centre', '+520,00 € · Le Petit Bistrot'];
+  const stack = $('#hphone-stack');
+  const ex = [['490,00', 'Boulangerie Martin'], ['650,00', 'Salon Léa Coiffure'], ['390,00', 'Garage du Centre'], ['520,00', 'Le Petit Bistrot'], ['450,00', 'Fleurs & Co'], ['590,00', 'Institut Belle Peau']];
+  const now = new Date();
+  $('#hphone-date').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('#hphone-time').textContent = now.toLocaleTimeString('fr-FR', { hour: 'numeric', minute: '2-digit' });
   let i = 0;
-  if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => {
-    if (document.body.dataset.state !== 'landing' || document.hidden) return;
-    box.classList.remove('swap'); void box.offsetWidth; box.classList.add('swap');
-    setTimeout(() => { body.textContent = ex[i = (i + 1) % ex.length]; }, 270);
-  }, 3600);
+  const push = (force) => {
+    if (!force && (document.body.dataset.state !== 'landing' || document.hidden)) return;
+    const [amount, who] = ex[i++ % ex.length];
+    for (const old of stack.querySelectorAll('.pn small')) old.textContent = old.textContent === 'maintenant' ? 'il y a 1 min' : old.textContent;
+    stack.prepend(el('div', { class: 'pn' }, el('span', { class: 'pn-ic', text: '€' }),
+      el('span', { class: 'pn-tx' }, el('span', { class: 'pn-top' }, el('b', { text: 'Virement reçu' }), el('small', { text: 'maintenant' })),
+        el('span', { class: 'pn-body' }, el('b', { text: `+${amount} €` }), ` · ${who}`))));
+    while (stack.children.length > 4) stack.lastChild.remove();
+  };
+  if (stack) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { push(true); push(true); push(true); }
+    else { setTimeout(() => push(true), 1500); setTimeout(() => push(true), 2400); setInterval(push, 2800); }
+  }
 }
 
 loadIndex().then((index) => {
