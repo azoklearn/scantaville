@@ -8,6 +8,7 @@ import * as store from './store.mjs';
 import { BRAND, applyBrand } from './brand.mjs';
 import { initDocs, openDocs } from './docs-ui.mjs';
 import * as supa from './supa.mjs';
+import { syncCoach, pushSoon as pushCoachSoon } from './coach.mjs';
 import { shopPhoto, paintPhoto } from './photos.mjs';
 import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
 
@@ -460,6 +461,10 @@ function quizResult() {
   const feasible = hoursNeeded <= quiz.hours * 1.15;
   const months = Math.max(1, Math.floor(total / contacts)); // how long the city lasts at this pace
   quizCalc = { sites, contacts, perWeek, hoursNeeded, feasible };
+  // what "Mon plan" (plan.html) follows day after day
+  store.setMyPlan({ goal: quiz.goal, hours: quiz.hours, profile: quiz.profile, skill: quiz.skill, social: quiz.social, city, insee: state.data.insee, total,
+    price: store.getMyPlan()?.price || SITE_PRICE, sites, contacts, perWeek, perDay: perContactDay, start: store.getMyPlan()?.start || store.dayKey() });
+  pushCoachSoon(); $('#btn-plan').hidden = false;
   const plan = [
     ['Objectif : ', el('b', { text: `${sites} site${sites > 1 ? 's' : ''} vendu${sites > 1 ? 's' : ''} par mois` }), ` à ${fr(SITE_PRICE)} € = ${fr(sites * SITE_PRICE)} €.`],
     ['Contacter ', el('b', { text: `${contacts} commerces dans le mois` }), `, soit ${perWeek} par semaine (${perContactDay} par sortie, 3 sorties) : un oui pour ${CONTACTS_PER_SALE} contacts, ça fait ${sites} vente${sites > 1 ? 's' : ''}.`],
@@ -525,6 +530,8 @@ $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   }, 380);
 }));
 $('#hero-start').addEventListener('click', startQuiz);
+if (new URLSearchParams(location.search).has('start')) { history.replaceState(null, '', location.pathname); setTimeout(startQuiz, 300); } // "Faire mon plan" from plan.html
+if (store.getMyPlan()) $('#btn-plan').hidden = false;
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
 function afterQuiz() {
   quiz.done = true; $('#quiz').hidden = true;
@@ -784,7 +791,7 @@ function renderStatus() {
     class: 'chip', type: 'button', 'aria-pressed': String(cur === s.key), text: s.label,
     onclick: () => {
       if (!store.can('fullPipeline') && s.key !== 'todo' && s.key !== 'contacted') return openPaywall('Le suivi complet (RDV, signé) commence à la formule Essentiel.', { feature: 'fullPipeline' });
-      store.setStatus(state.lead, state.data.name, cur === s.key ? null : s.key); renderStatus(); renderList(); renderGoal();
+      store.setStatus(state.lead, state.data.name, cur === s.key ? null : s.key); renderStatus(); renderList(); renderGoal(); pushCoachSoon();
       supa.pushStatus(state.lead, state.data.name, state.data.insee, cur === s.key ? null : s.key);
       if (s.key === 'won' && cur !== 'won') { $('.demo-side').dataset.expanded = 'true'; $('.after-yes').classList.add('hot'); toast('Signé, bravo. Il reste le devis, puis le vrai site à construire.'); }
     },
@@ -1048,7 +1055,7 @@ if (supa.enabled) {
     btn.textContent = user ? (user.email || 'Mon compte') : 'Connexion';
     $('#auth-form').hidden = !!user; $('#auth-sub').hidden = !!user; $('#auth-me').hidden = !user; $('.authcard').dataset.me = user ? '1' : '0';
     if (user) $('#auth-title').textContent = 'Mon compte';
-    if (user) { $('#auth-email').textContent = user.email || ''; $('#auth-plan').textContent = planById(store.getPlanId())?.name || 'Découverte'; store.mergePipeline(await supa.pullPipeline()); }
+    if (user) { $('#auth-email').textContent = user.email || ''; $('#auth-plan').textContent = planById(store.getPlanId())?.name || 'Découverte'; store.mergePipeline(await supa.pullPipeline()); syncCoach().then(() => { if (store.getMyPlan()) $('#btn-plan').hidden = false; }); }
     renderPlans(); refreshLocks();
     // the unlocked shops depend on the plan: reload the city when it changes under our feet
     if (lastPlan !== undefined && lastPlan !== store.getPlanId() && state.data && document.body.dataset.state === 'scan') {

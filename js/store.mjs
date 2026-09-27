@@ -54,8 +54,11 @@ export const getPipeline = () => read('pipeline', {});
 export function mergePipeline(remote) { if (!remote) return; write('pipeline', { ...getPipeline(), ...remote }); }
 export function setStatus(lead, city, status) {
   const p = getPipeline();
+  const was = p[lead.id]?.status;
   if (!status) delete p[lead.id]; else p[lead.id] = { status, name: lead.name, city, ts: Date.now() };
-  write('pipeline', p); return p;
+  write('pipeline', p);
+  if (status === 'contacted' && (!was || was === 'todo')) bumpDay(1); // feeds today's counter on "Mon plan"
+  return p;
 }
 export const wonCount = () => Object.values(getPipeline()).filter((x) => x.status === 'won').length;
 
@@ -82,3 +85,16 @@ export const saveWaitlist = (email, plan) => write('waitlist', { email, plan, ts
 
 export function cacheCity(insee, data) { try { sessionStorage.setItem(K + 'city.' + insee, JSON.stringify(data)); } catch { /* too big: skip */ } }
 export function cachedCity(insee) { try { const v = sessionStorage.getItem(K + 'city.' + insee); return v ? JSON.parse(v) : null; } catch { return null; } }
+
+// "Mon plan" (plan.html): the quiz answers, the contacts counted per day, the journal and the roadmap boxes ticked by hand.
+// Synced to the `coach` table when signed in (js/coach.mjs); localStorage stays the working copy.
+export const dayKey = (d = new Date()) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+export const getMyPlan = () => read('myplan', null);
+export const setMyPlan = (p) => write('myplan', p ? { ...p, ts: Date.now() } : null);
+export const getDayLog = () => read('daylog', {});
+export const setDayLog = (d) => write('daylog', d || {});
+export function bumpDay(n = 1, day = dayKey()) { const d = getDayLog(); d[day] = Math.max(0, (d[day] || 0) + n); write('daylog', d); return d[day]; }
+export const getJournal = () => read('journal', []);
+export const setJournal = (j) => write('journal', Array.isArray(j) ? j.slice(-500) : []);
+export const getRoadmap = () => read('roadmap', {});
+export const setRoadmap = (r) => write('roadmap', r || {});

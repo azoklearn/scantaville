@@ -791,3 +791,8 @@ body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !importa
 #quiz #quiz-quick { margin-top: 14px; opacity: 1; animation: none; }
 #quiz .quiz-step[data-step="city"] .muted { margin: -6px 0 14px; }
 @media (max-width: 640px) { #quiz .quiz-opts { grid-template-columns: 1fr; } #quiz .quiz-opts button { padding: 12px 14px; } }
+
+/* "Mon plan" links */
+.top-nav a.btn-plan { display: inline-flex; padding: 0 14px; color: var(--ink); }
+.top-nav a.btn-plan[hidden] { display: none; }
+.quiz-planlink { display: block; margin-top: 12px; text-align: center; font-size: 14px; font-weight: 600; color: var(--blue); text-decoration: none; }

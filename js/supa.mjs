@@ -126,3 +126,18 @@ export async function mySites() {
   const { data, error } = await sb.rpc('my_sites');
   return error || !Array.isArray(data) ? [] : data;
 }
+
+/** "Mon plan": one row per user (plan, journal, contacts per day, roadmap). null = not signed in / table missing. */
+export async function pullCoach() {
+  const sb = await client(); if (!sb) return null;
+  const uid = await userId(sb); if (!uid) return null;
+  const { data, error } = await sb.from('coach').select('data').eq('user_id', uid).maybeSingle();
+  if (error) return null;
+  return data?.data || {};
+}
+export async function pushCoach(doc) {
+  const sb = await client(); if (!sb) return false;
+  const uid = await userId(sb); if (!uid) return false;
+  const { error } = await sb.from('coach').upsert({ user_id: uid, data: doc, updated_at: new Date().toISOString() });
+  return !error;
+}
