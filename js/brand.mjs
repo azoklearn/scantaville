@@ -6,7 +6,7 @@ export const BRAND = {
   accent: 1,
   slug: 'scantaville',
   domain: 'scantaville.fr',
-  optOutEmail: 'retrait@scantaville.fr',
+  optOutEmail: 'movento.dev@gmail.com',
 };
 
 // Partner upsell: once the owner says yes, the user still has to BUILD the real site.
