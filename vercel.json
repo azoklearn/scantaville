@@ -11,7 +11,7 @@
       ]
     },
     {
-      "source": "/(doc|admin|plan)\\.html",
+      "source": "/(doc|admin|plan|profil)\\.html",
       "headers": [
         {
           "key": "X-Robots-Tag",

@@ -84,7 +84,9 @@ export async function pushStatus(lead, city, insee, status) {
   const sb = await client(); if (!sb) return;
   const uid = await userId(sb); if (!uid) return;
   if (!status) { await sb.from('pipeline').delete().eq('user_id', uid).eq('lead_id', lead.id); return; }
-  await sb.from('pipeline').upsert({ user_id: uid, lead_id: lead.id, city_insee: insee, city, name: lead.name, status, updated_at: new Date().toISOString() });
+  const row = { user_id: uid, lead_id: lead.id, city, name: lead.name, status, updated_at: new Date().toISOString() };
+  if (insee) row.city_insee = insee; // the profile page changes statuses without knowing the city code: keep the stored one
+  await sb.from('pipeline').upsert(row);
 }
 
 export async function reportHasSite(leadId, insee) {
@@ -140,4 +142,18 @@ export async function pushCoach(doc) {
   const uid = await userId(sb); if (!uid) return false;
   const { error } = await sb.from('coach').upsert({ user_id: uid, data: doc, updated_at: new Date().toISOString() });
   return !error;
+}
+
+/** Profile page: { email, plan, plan_until, created_at } of the signed-in user, or null. */
+export async function myProfile() {
+  const sb = await client(); if (!sb) return null;
+  const { data: s } = await sb.auth.getSession(); const user = s.session?.user; if (!user) return null;
+  const { data } = await sb.from('profiles').select('plan, plan_until, created_at').eq('id', user.id).maybeSingle();
+  const expired = data?.plan_until && new Date(data.plan_until) < new Date();
+  return { email: user.email, plan: expired ? 'free' : data?.plan || 'free', plan_until: data?.plan_until || null, expired: !!expired, created_at: data?.created_at || user.created_at };
+}
+export async function changePassword(password) {
+  const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
+  const { error } = await sb.auth.updateUser({ password });
+  return { error: error ? (/should be different/i.test(error.message) ? 'C’est déjà ton mot de passe actuel.' : /password/i.test(error.message) ? 'Mot de passe trop court : 6 caractères minimum.' : 'Changement impossible. Reconnecte-toi puis réessaie.') : null };
 }

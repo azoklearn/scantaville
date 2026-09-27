@@ -983,7 +983,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 if (supa.enabled) {
   const btn = $('#btn-account');
   btn.hidden = false;
-  btn.addEventListener('click', () => openOverlay('#auth'));
+  btn.addEventListener('click', () => { if (state.user) location.href = '/profil.html'; else openOverlay('#auth'); }); // signed in: the profile page
   const form = $('#auth-form');
   const setMode = (mode) => {
     form.dataset.mode = mode;
@@ -1046,13 +1046,13 @@ if (supa.enabled) {
       $('#me-goal').textContent = quiz.goal ? `Objectif : ${fr(quiz.goal)} € par mois, soit ${Math.ceil(quiz.goal / 400)} sites. Ce mois-ci : ${recent} commerce${recent > 1 ? 's' : ''} contacté${recent > 1 ? 's' : ''}, ${rows.filter((r) => r.ts > month && r.status === 'won').length} signé(s).` : `Ce mois-ci : ${recent} commerce${recent > 1 ? 's' : ''} contacté${recent > 1 ? 's' : ''}. Lance un scan et choisis un objectif pour suivre ta progression.`;
     }
   }
-  btn.addEventListener('click', async () => { if (state.user) { me.sites = await supa.mySites(); renderMe(); } });
+
 
   let lastPlan;
   supa.onAuth(async ({ user, plan }) => {
     state.user = user; state.gateTitle = ''; updateGate();
     store.setServerPlan(user ? plan : null);
-    btn.textContent = user ? (user.email || 'Mon compte') : 'Connexion';
+    btn.textContent = user ? 'Profil' : 'Connexion';
     $('#auth-form').hidden = !!user; $('#auth-sub').hidden = !!user; $('#auth-me').hidden = !user; $('.authcard').dataset.me = user ? '1' : '0';
     if (user) $('#auth-title').textContent = 'Mon compte';
     if (user) { $('#auth-email').textContent = user.email || ''; $('#auth-plan').textContent = planById(store.getPlanId())?.name || 'Découverte'; store.mergePipeline(await supa.pullPipeline()); syncCoach().then(() => { if (store.getMyPlan()) $('#btn-plan').hidden = false; }); }

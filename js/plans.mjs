@@ -46,6 +46,9 @@ export const PLANS = [
   },
 ];
 
+/** Where a subscriber manages or cancels the subscription (Whop account > Memberships). */
+export const MANAGE_URL = 'https://whop.com/@me/settings/memberships/';
+
 export const FREE = {
   id: 'free', level: 0, name: 'Découverte',
   perks: ['Scanne n’importe quelle ville', 'Vois combien de commerces n’ont pas de site', 'La carte de ta ville à partager'],
