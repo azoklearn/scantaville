@@ -18,7 +18,7 @@ async function show(session) {
   const { data: ok } = await sb.rpc('is_admin');
   if (!ok) { $('#app').hidden = true; $('#login').hidden = false; $('#login-msg').className = 'msg err'; $('#login-msg').textContent = 'Ce compte n’est pas administrateur.'; return; }
   $('#app').hidden = false;
-  await Promise.all([overview(), loadUsers(''), waitlist()]);
+  await Promise.all([overview(), loadUsers(''), waitlist(), payments()]);
 }
 
 async function overview() {
@@ -42,6 +42,34 @@ async function loadUsers(q) {
   if (error) return;
   users = data || [];
   $('#users').replaceChildren(...users.map((u) => row(cell(u.email || '—'), cell(PLAN[u.plan] || u.plan, 'tag' + (u.plan !== 'free' ? ' paid' : '')), cell(day(u.plan_until)), cell(day(u.created_at)), cell(day(u.last_sign_in_at)), cell(String(u.tracked)), cell(String(u.won)))));
+}
+
+const PAY = { applied: 'Appliqué', pending: 'En attente', unmatched: 'Sans e-mail', ignored: 'Ignoré', error: 'Erreur', received: 'Reçu' };
+async function payments() {
+  const { data, error } = await sb.rpc('admin_whop_events', { p_limit: 200 });
+  if (error) { $('#pay-msg').className = 'msg err'; $('#pay-msg').textContent = 'Journal indisponible : lance supabase/payments.sql dans Supabase.'; return; }
+  $('#pay-msg').textContent = data?.length ? '' : 'Aucun événement reçu pour l’instant. Après le prochain paiement, il apparaîtra ici.';
+  $('#pay').replaceChildren(...(data || []).map((w) => {
+    const when = new Date(w.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+    const status = cell(PAY[w.status] || w.status, 'tag ' + w.status); if (w.note) status.title = w.note;
+    const act = document.createElement('td');
+    if (w.plan && ['pending', 'unmatched'].includes(w.status)) {
+      const f = document.createElement('form'); f.className = 'assign';
+      const i = document.createElement('input'); i.type = 'email'; i.required = true; i.placeholder = 'e-mail du compte'; i.value = w.email || '';
+      const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Attribuer';
+      f.append(i, b);
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault(); b.disabled = true;
+        const { error: err } = await sb.rpc('admin_assign_whop_event', { p_event: w.id, p_email: i.value.trim() });
+        b.disabled = false;
+        $('#pay-msg').className = err ? 'msg err' : 'msg';
+        $('#pay-msg').textContent = err ? (/no account/.test(err.message) ? 'Aucun compte avec cet e-mail.' : 'Échec : ' + err.message) : `Formule ${PLAN[w.plan]} attribuée à ${i.value.trim()}.`;
+        if (!err) { payments(); overview(); loadUsers($('#q').value.trim()); }
+      });
+      act.append(f);
+    }
+    return row(cell(when), cell(w.type), cell(w.email || '—'), cell(PLAN[w.plan] || w.plan || '—'), status, cell(w.applied_email || '—'), act);
+  }));
 }
 
 async function waitlist() {

@@ -47,7 +47,7 @@ export const PLANS = [
 ];
 
 /** Where a subscriber manages or cancels the subscription (Whop account > Memberships). */
-export const MANAGE_URL = 'https://whop.com/@me/settings/memberships/';
+export const MANAGE_URL = 'https://whop.com/@me/settings/orders/'; // fallback: each membership also has its own manage_url, stored by the webhook
 
 export const FREE = {
   id: 'free', level: 0, name: 'Découverte',

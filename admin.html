@@ -39,6 +39,8 @@
   td { padding:10px; border-bottom:1px solid var(--line); white-space:nowrap; }
   .tag { padding:3px 8px; border-radius:999px; font:500 10.5px "Martian Mono",monospace; background:#f1f3f8; color:var(--muted); }
   .tag.paid { background:var(--blue); color:#fff; }
+  .tag.applied { background:#e3f7ee; color:var(--ok); } .tag.pending { background:#fff4dc; color:#a86a00; } .tag.unmatched, .tag.error { background:#fde8e8; color:#c0262d; }
+  .assign { display:flex; gap:6px; } .assign input { height:32px; width:190px; } .assign button { height:32px; padding:0 10px; }
   .login { max-width:380px; margin:12vh auto; display:grid; gap:10px; }
   .msg { color:var(--muted); font-size:13px; } .err { color:#c0262d; }
   .grid2 { display:grid; gap:18px; } @media (min-width:900px) { .grid2 { grid-template-columns:1.4fr 1fr; } }
@@ -78,6 +80,12 @@
       <button type="submit">Appliquer</button>
     </form>
     <p id="grant-msg" class="msg">Utile pour le support, un cadeau, ou un paiement que le webhook aurait manqué.</p>
+  </section>
+  <section class="card">
+    <h2>Paiements Whop</h2>
+    <p class="msg" style="margin:-6px 0 12px">Chaque événement reçu du webhook. <b>En attente</b> = aucun compte avec cet e-mail (appliqué dès qu'il s'inscrit, ou attribue-le). <b>Sans e-mail</b> = Whop n'envoie pas l'e-mail : active la permission member:email:read sur le webhook.</p>
+    <div class="scroll"><table><thead><tr><th>Date</th><th>Événement</th><th>E-mail Whop</th><th>Formule</th><th>Statut</th><th>Compte</th><th>Attribuer à</th></tr></thead><tbody id="pay"></tbody></table></div>
+    <p id="pay-msg" class="msg"></p>
   </section>
   <section class="card"><h2>Liste d'attente</h2><div class="scroll"><table><thead><tr><th>E-mail</th><th>Formule visée</th><th>Date</th></tr></thead><tbody id="wait"></tbody></table></div></section>
 </main>

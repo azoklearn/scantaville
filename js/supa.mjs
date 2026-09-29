@@ -148,12 +148,21 @@ export async function pushCoach(doc) {
 export async function myProfile() {
   const sb = await client(); if (!sb) return null;
   const { data: s } = await sb.auth.getSession(); const user = s.session?.user; if (!user) return null;
-  const { data } = await sb.from('profiles').select('plan, plan_until, created_at').eq('id', user.id).maybeSingle();
+  let { data, error } = await sb.from('profiles').select('plan, plan_until, created_at, whop_manage_url').eq('id', user.id).maybeSingle();
+  if (error) ({ data } = await sb.from('profiles').select('plan, plan_until, created_at').eq('id', user.id).maybeSingle()); // payments.sql not run yet
   const expired = data?.plan_until && new Date(data.plan_until) < new Date();
-  return { email: user.email, plan: expired ? 'free' : data?.plan || 'free', plan_until: data?.plan_until || null, expired: !!expired, created_at: data?.created_at || user.created_at };
+  return { email: user.email, plan: expired ? 'free' : data?.plan || 'free', plan_until: data?.plan_until || null, expired: !!expired, created_at: data?.created_at || user.created_at, manage_url: data?.whop_manage_url || null };
 }
 export async function changePassword(password) {
   const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
   const { error } = await sb.auth.updateUser({ password });
   return { error: error ? (/should be different/i.test(error.message) ? 'C’est déjà ton mot de passe actuel.' : /password/i.test(error.message) ? 'Mot de passe trop court : 6 caractères minimum.' : 'Changement impossible. Reconnecte-toi puis réessaie.') : null };
+}
+
+/** "I paid with another e-mail": attaches a waiting Whop payment made with that e-mail to the signed-in account. Returns the plan id or null. */
+export async function claimPurchase(email) {
+  const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
+  const { data, error } = await sb.rpc('claim_whop_purchase', { p_email: email });
+  if (error) return { error: /sign in/i.test(error.message) ? 'Connecte-toi d’abord.' : 'Vérification impossible pour le moment. Réessaie dans une minute.' };
+  return { plan: data || null };
 }

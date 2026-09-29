@@ -33,9 +33,10 @@ function renderSub() {
     : p.expired ? `Ton abonnement a pris fin le ${date(p.plan_until)}.` : 'Tu vois combien de commerces n’ont pas de site, mais pas lesquels. Choisis une formule pour les débloquer.';
   $('#pf-perks').replaceChildren(...(plan ? plan.perks : FREE.perks.map((t) => ({ text: t }))).map((x) => el('li', { text: x.text })));
   const acts = [];
-  if (plan) acts.push(el('a', { class: 'ghost', href: MANAGE_URL, target: '_blank', rel: 'noopener', text: 'Gérer ou résilier ↗', onclick: () => track('manage_sub', { plan: p.plan }) }));
+  if (plan) acts.push(el('a', { class: 'ghost', href: p.manage_url || MANAGE_URL, target: '_blank', rel: 'noopener', text: 'Gérer ou résilier ↗', onclick: () => track('manage_sub', { plan: p.plan }) }));
   acts.push(el('a', { class: 'cta', href: '#pf-plans-card', text: plan ? (level < 3 ? 'Passer au-dessus' : 'Voir les formules') : 'Choisir une formule' }));
   $('#pf-sub-acts').replaceChildren(...acts);
+  $('#pf-help').open = !plan && new URLSearchParams(location.search).has('paid'); // back from Whop without a plan: show the fix right away
 
   $('#pf-plans-title').textContent = plan ? 'Changer de formule' : 'Choisis ta formule';
   $('#pf-plans').replaceChildren(...PLANS.map((x) => {
@@ -101,6 +102,17 @@ $('#pf-pass').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target.elements, { error } = await supa.changePassword(f.password.value);
   f.password.value = ''; toast(error || 'Mot de passe changé.');
+});
+$('#pf-claim').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target.elements, b = e.target.querySelector('button'); b.disabled = true;
+  const { plan, error } = await supa.claimPurchase(f.email.value.trim());
+  b.disabled = false;
+  if (error) return toast(error);
+  if (!plan) return toast('Aucun paiement en attente avec cet e-mail. Vérifie l’adresse, ou écris-nous.');
+  track('claim_purchase', { plan });
+  toast(`Formule ${planById(plan)?.name || plan} activée. Bienvenue !`);
+  ui.profile = await supa.myProfile() || ui.profile; renderSub();
 });
 $('#pf-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -59,9 +59,14 @@
           <div class="pf-sub-acts" id="pf-sub-acts"></div>
         </div>
         <ul class="pf-perks" id="pf-perks"></ul>
-        <details class="pf-help">
+        <details class="pf-help" id="pf-help">
           <summary>J'ai payé mais ma formule ne s'affiche pas</summary>
-          <p>La formule s'active sur le compte qui a <b>le même e-mail</b> que celui utilisé au paiement. Si tu as payé avec une autre adresse, écris-nous depuis cette adresse à <a data-support href="mailto:movento.dev@gmail.com">movento.dev@gmail.com</a> en indiquant l'e-mail de ton compte : on l'active à la main.</p>
+          <p>Indique l'e-mail utilisé sur Whop au moment du paiement : on retrouve ton achat et on l'active sur ce compte.</p>
+          <form id="pf-claim" class="pf-form pf-row">
+            <input name="email" type="email" required placeholder="E-mail utilisé sur Whop" autocomplete="email" aria-label="E-mail utilisé sur Whop">
+            <button class="cta" type="submit">Activer mon achat</button>
+          </form>
+          <p class="pl-hint">Toujours rien ? Écris à <a data-support href="mailto:movento.dev@gmail.com">movento.dev@gmail.com</a> avec l'e-mail de ton compte et celui du paiement : on l'active à la main.</p>
         </details>
       </section>
 
