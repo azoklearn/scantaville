@@ -114,14 +114,6 @@ $('#pf-claim').addEventListener('submit', async (e) => {
   toast(`Formule ${planById(plan)?.name || plan} activée. Bienvenue !`);
   ui.profile = await supa.myProfile() || ui.profile; renderSub();
 });
-$('#pf-forgot').addEventListener('click', async (e) => {
-  const f = $('#pf-login-form').elements, mail = f.email.value.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { toast('Écris d’abord ton e-mail dans le champ au-dessus.'); return f.email.focus(); }
-  const b = e.currentTarget; b.disabled = true; // currentTarget is gone after the await
-  const { error } = await supa.resetPassword(mail);
-  b.disabled = false;
-  toast(error || 'Si un compte existe avec cet e-mail, un lien vient de partir. Regarde aussi tes spams.');
-});
 $('#pf-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target.elements, b = e.target.querySelector('button'); b.disabled = true;
@@ -140,11 +132,6 @@ async function show(user) {
   $('#pf-avatar').textContent = (ui.profile.email || '?')[0].toUpperCase();
   $('#pf-since').textContent = ui.profile.created_at ? `Membre depuis le ${date(ui.profile.created_at)}` : '';
   renderSub(); renderStats(); renderProspects(); renderSites();
-  if (new URLSearchParams(location.search).has('reset')) { // came from the "mot de passe oublié" link
-    history.replaceState(null, '', location.pathname);
-    const field = $('#pf-pass').elements.password; field.scrollIntoView({ block: 'center' }); field.focus({ preventScroll: true });
-    toast('Choisis ton nouveau mot de passe ci-dessous.');
-  }
   const [remote, sites] = await Promise.all([supa.pullPipeline(), supa.mySites()]);
   store.mergePipeline(remote); ui.sites = sites || [];
   renderStats(); renderProspects(); renderSites();
