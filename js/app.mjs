@@ -993,7 +993,16 @@ if (supa.enabled) {
     $('#auth-go').textContent = up ? 'Créer mon compte' : 'Me connecter';
     $('#auth-switch').textContent = up ? 'J\'ai déjà un compte' : 'Créer un compte';
     form.elements.password.autocomplete = up ? 'new-password' : 'current-password';
+    $('#auth-forgot').hidden = up;
   };
+  $('#auth-forgot').addEventListener('click', async (e) => {
+    const mail = form.elements.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { toast('Écris d’abord ton e-mail dans le champ au-dessus.'); return form.elements.email.focus(); }
+    const b = e.currentTarget; b.disabled = true; // currentTarget is gone after the await
+    const { error } = await supa.resetPassword(mail);
+    b.disabled = false;
+    toast(error || 'Si un compte existe avec cet e-mail, un lien vient de partir. Regarde aussi tes spams.');
+  });
   $('#auth-switch').addEventListener('click', () => setMode(form.dataset.mode === 'signup' ? 'login' : 'signup'));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

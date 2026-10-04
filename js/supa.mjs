@@ -166,3 +166,10 @@ export async function claimPurchase(email) {
   if (error) return { error: /sign in/i.test(error.message) ? 'Connecte-toi d’abord.' : 'Vérification impossible pour le moment. Réessaie dans une minute.' };
   return { plan: data || null };
 }
+
+/** "Mot de passe oublié": Supabase e-mails a link that signs the user in on the profile page, where they pick a new password. */
+export async function resetPassword(email) {
+  const sb = await client(); if (!sb) return { error: 'Les comptes ne sont pas encore activés.' };
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/profil.html?reset=1` });
+  return { error: error ? (/rate|seconds/i.test(error.message) ? 'Trop de demandes. Réessaie dans quelques minutes.' : 'Envoi impossible pour le moment. Réessaie dans une minute.') : null };
+}
