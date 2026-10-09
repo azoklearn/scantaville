@@ -19,7 +19,7 @@ export const COUNTRIES = [
   { code: 'CA', name: 'Canada', flag: '🇨🇦', tld: 'ca' },
 ];
 export const countryOf = (code) => COUNTRIES.find((c) => c.code === code) || COUNTRIES[0];
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 
 let indexPromise = null;
 export function loadIndex() {
@@ -111,20 +111,33 @@ export async function loadCity(city, { onStatus } = {}) {
   const cached = cachedCity(city.insee);
   if (cached) return cached;
 
-  onStatus?.('Lecture en direct d\'OpenStreetMap… (10 à 20 s)');
-  const body = 'data=' + encodeURIComponent(buildOverpassQuery(city.insee));
-  let json = null, lastErr = null;
-  for (const url of OVERPASS) {
-    try {
-      const r = await fetch(url, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' } });
-      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
-      json = await r.json(); break;
-    } catch (e) { lastErr = e; }
+  onStatus?.('Lecture en direct d\'OpenStreetMap… (10 à 30 s)');
+  let leads = null, stats = null;
+  // 1. our relay (api/city.mjs): fetched once on the server, cached a week for everyone
+  try {
+    const r = await fetch(`/api/city?id=${encodeURIComponent(city.insee)}`, { signal: AbortSignal.timeout(70000) });
+    if (r.ok && /json/.test(r.headers.get('content-type') || '')) { const d = await r.json(); if (Array.isArray(d.leads)) ({ leads, stats } = d); }
+  } catch { /* fall back to the public servers */ }
+  // 2. the public Overpass servers, straight from the browser: two rounds, they throttle and time out a lot
+  if (!leads) {
+    const body = 'data=' + encodeURIComponent(buildOverpassQuery(city.insee));
+    let lastErr = null;
+    for (let round = 0; round < 2 && !leads; round++) {
+      if (round) { onStatus?.('OpenStreetMap est très demandé, nouvel essai…'); await new Promise((r) => setTimeout(r, 6000)); }
+      for (const url of OVERPASS) {
+        try {
+          const r = await fetch(url, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(75000) });
+          if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+          const json = await r.json();
+          if (!Array.isArray(json.elements) || (!json.elements.length && json.remark)) { lastErr = new Error(json.remark || 'empty'); continue; }
+          ({ leads, stats } = elementsToLeads(json.elements)); break;
+        } catch (e) { lastErr = e; }
+      }
+    }
+    if (!leads) throw new Error('OpenStreetMap ne répond pas pour le moment. Réessaie dans une minute.', { cause: lastErr });
   }
-  if (!json) throw new Error('OpenStreetMap est saturé pour le moment. Réessaie dans une minute, ou choisis une ville pré-scannée.', { cause: lastErr });
 
   onStatus?.('Tri des commerces…');
-  const { leads, stats } = elementsToLeads(json.elements || []);
   // live mode: the domain check runs lazily when a pin is opened, so 'pending' counts as gold for now
   const s = summarize(leads);
   const data = {

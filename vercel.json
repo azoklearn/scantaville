@@ -25,5 +25,10 @@
       "source": "/site/:slug",
       "destination": "/demo.html?s=:slug"
     }
-  ]
+  ],
+  "functions": {
+    "api/city.mjs": {
+      "maxDuration": 60
+    }
+  }
 }
