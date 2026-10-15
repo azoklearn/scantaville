@@ -5,91 +5,118 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>ScanTaVille · Admin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b1b3f'/%3E%3Cpath d='M32 12c-8.8 0-16 7-16 15.8C16 39.6 32 54 32 54s16-14.4 16-26.2C48 19 40.8 12 32 12z' fill='%23fff'/%3E%3Ccircle cx='32' cy='27.5' r='6' fill='%230b1b3f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Martian+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root { --ink:#0b1b3f; --ink-2:#2f4068; --muted:#6a7999; --line:#e4eaf6; --bg-2:#f5f8ff; --bg-3:#eaf1ff; --blue:#1d5bff; --ok:#0c9a6a; }
-  * { box-sizing:border-box; margin:0; }
-  body { font:400 15px/1.5 "Schibsted Grotesk",system-ui,sans-serif; color:var(--ink); background:var(--bg-2); -webkit-font-smoothing:antialiased; }
-  [hidden] { display:none !important; }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 22px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
-  h1 { font:800 20px/1 "Archivo",sans-serif; letter-spacing:-.03em; } h1 b { color:var(--blue); }
-  main { max-width:1180px; margin:0 auto; padding:22px; display:grid; gap:18px; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 4px 14px rgba(11,27,63,.05); }
-  h2 { font:800 16px/1 "Archivo",sans-serif; letter-spacing:-.02em; margin-bottom:14px; }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
-  .kpi { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; }
-  .kpi b { display:block; font:900 34px/1 "Archivo",sans-serif; font-stretch:80%; letter-spacing:-.03em; color:var(--blue); }
-  .kpi span { font:400 10.5px "Martian Mono",monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
-  .bars { display:flex; align-items:flex-end; gap:3px; height:90px; }
-  .bars i { flex:1; min-width:3px; background:var(--blue); border-radius:3px 3px 0 0; opacity:.85; }
-  .bars-x { display:flex; justify-content:space-between; font:400 10px "Martian Mono",monospace; color:var(--muted); margin-top:6px; }
-  .pills { display:flex; flex-wrap:wrap; gap:8px; }
-  .pill { padding:6px 12px; border-radius:999px; background:var(--bg-3); font-size:13px; } .pill b { color:var(--blue); margin-left:6px; }
-  .tools { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
-  input, select, button { font:inherit; color:inherit; }
-  input, select { height:40px; padding:0 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg-2); outline:0; }
-  input:focus, select:focus { border-color:var(--blue); background:#fff; }
-  button { cursor:pointer; height:40px; padding:0 16px; border-radius:10px; border:0; background:var(--blue); color:#fff; font-weight:600; }
-  button.ghost { background:#fff; color:var(--ink); border:1.5px solid var(--line); }
-  .scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  th { text-align:left; font:400 10.5px "Martian Mono",monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  td { padding:10px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  .tag { padding:3px 8px; border-radius:999px; font:500 10.5px "Martian Mono",monospace; background:#f1f3f8; color:var(--muted); }
-  .tag.paid { background:var(--blue); color:#fff; }
-  .tag.applied { background:#e3f7ee; color:var(--ok); } .tag.pending { background:#fff4dc; color:#a86a00; } .tag.unmatched, .tag.error { background:#fde8e8; color:#c0262d; }
-  .assign { display:flex; gap:6px; } .assign input { height:32px; width:190px; } .assign button { height:32px; padding:0 10px; }
-  .login { max-width:380px; margin:12vh auto; display:grid; gap:10px; }
-  .msg { color:var(--muted); font-size:13px; } .err { color:#c0262d; }
-  .grid2 { display:grid; gap:18px; } @media (min-width:900px) { .grid2 { grid-template-columns:1.4fr 1fr; } }
-</style>
+<link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-<header>
-  <h1>scan<b>ta</b>ville · admin</h1>
-  <div><span id="who" class="msg"></span> <button id="out" class="ghost" hidden>Déconnexion</button></div>
+<header class="bar">
+  <div class="bar-l">
+    <a class="logo" href="/"><svg viewBox="0 0 24 30" width="15" height="19" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 30 12 30s12-9.4 12-18.1C24 5.3 18.6 0 12 0z" fill="currentColor"/><circle cx="12" cy="11.5" r="4.4" fill="#fff"/></svg><span>scan<b>ta</b>ville</span></a>
+    <span class="chip-admin">admin</span>
+  </div>
+  <nav class="tabs" id="tabs" hidden>
+    <button type="button" data-tab="overview" aria-selected="true">Vue d'ensemble</button>
+    <button type="button" data-tab="users" aria-selected="false">Utilisateurs</button>
+    <button type="button" data-tab="payments" aria-selected="false">Paiements <i id="pay-dot" hidden></i></button>
+    <button type="button" data-tab="waitlist" aria-selected="false">Liste d'attente</button>
+  </nav>
+  <div class="bar-r"><span id="who" class="muted"></span><button id="refresh" class="icon" type="button" title="Actualiser" hidden>↻</button><button id="out" class="ghost" type="button" hidden>Déconnexion</button></div>
 </header>
 
 <form id="login" class="card login" hidden>
-  <h2>Accès réservé</h2>
+  <h1>Accès réservé</h1>
   <input name="email" type="email" required placeholder="E-mail" autocomplete="email">
   <input name="password" type="password" required placeholder="Mot de passe" autocomplete="current-password">
-  <button type="submit">Se connecter</button>
-  <p id="login-msg" class="msg">Connecte-toi avec ton compte ScanTaVille. Il doit avoir été déclaré administrateur dans la base.</p>
+  <button class="btn" type="submit">Se connecter</button>
+  <p id="login-msg" class="muted">Connecte-toi avec ton compte ScanTaVille. Il doit être déclaré administrateur dans la base.</p>
 </form>
 
 <main id="app" hidden>
-  <section class="kpis" id="kpis"></section>
-  <div class="grid2">
-    <section class="card"><h2>Inscriptions, 30 derniers jours</h2><div id="bars" class="bars"></div><div id="bars-x" class="bars-x"></div></section>
-    <section class="card"><h2>Formules actives</h2><div id="plans" class="pills"></div><h2 style="margin-top:18px">Suivi des prospects (tous comptes)</h2><div id="pipe" class="pills"></div></section>
-  </div>
-  <section class="card">
-    <h2>Inscrits</h2>
-    <div class="tools"><input id="q" type="search" placeholder="Chercher un e-mail…"><button id="csv" class="ghost" type="button">Exporter en CSV</button></div>
-    <div class="scroll"><table><thead><tr><th>E-mail</th><th>Formule</th><th>Jusqu'au</th><th>Inscrit le</th><th>Dernière connexion</th><th>Prospects suivis</th><th>Signés</th></tr></thead><tbody id="users"></tbody></table></div>
+  <p id="banner" class="banner" hidden></p>
+
+  <!-- ───────── Overview ───────── -->
+  <section class="tab" id="tab-overview">
+    <div class="hello"><h1 id="hello">Bonjour</h1><p class="muted" id="updated"></p></div>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="grid g-21">
+      <article class="card">
+        <div class="card-h"><h2>Inscriptions</h2><div class="seg" id="range"><button type="button" data-d="7">7 j</button><button type="button" data-d="30" aria-pressed="true">30 j</button></div></div>
+        <div class="chart" id="chart"></div>
+      </article>
+      <article class="card">
+        <div class="card-h"><h2>Revenus estimés</h2><span class="tag" id="mrr-tag"></span></div>
+        <p class="big" id="mrr"></p>
+        <p class="muted small">par mois, abonnés actifs hors comptes admin</p>
+        <div id="plans" class="plans"></div>
+      </article>
+    </div>
+
+    <div class="grid g-3">
+      <article class="card"><div class="card-h"><h2>Entonnoir</h2></div><div id="funnel" class="funnel"></div></article>
+      <article class="card"><div class="card-h"><h2>Prospection des membres</h2><span class="tag" id="pipe-7d"></span></div><div id="pipe" class="hbars"></div></article>
+      <article class="card"><div class="card-h"><h2>Villes les plus travaillées</h2></div><ol id="cities" class="rank"></ol></article>
+    </div>
+
+    <div class="grid g-12">
+      <article class="card"><div class="card-h"><h2>Activité récente</h2></div><ul id="feed" class="feed"></ul></article>
+      <div class="stack">
+        <article class="card"><div class="card-h"><h2>Expirent sous 7 jours</h2><span class="tag" id="exp-n"></span></div><ul id="expiring" class="mini"></ul></article>
+        <article class="card"><div class="card-h"><h2>Usage</h2></div><div id="usage" class="usage"></div></article>
+      </div>
+    </div>
   </section>
-  <section class="card">
-    <h2>Donner ou retirer une formule à la main</h2>
-    <form id="grant" class="tools">
-      <input name="email" type="email" required placeholder="E-mail du compte">
-      <select name="plan"><option value="m1">Essentiel</option><option value="m3">Pro</option><option value="y1">Illimité</option><option value="free">Découverte (retirer)</option></select>
-      <input name="until" type="date" title="Fin de la formule (vide = sans fin)">
-      <button type="submit">Appliquer</button>
-    </form>
-    <p id="grant-msg" class="msg">Utile pour le support, un cadeau, ou un paiement que le webhook aurait manqué.</p>
+
+  <!-- ───────── Users ───────── -->
+  <section class="tab" id="tab-users" hidden>
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="Chercher un e-mail…">
+      <div class="seg" id="ufilter">
+        <button type="button" data-f="all" aria-pressed="true">Tous</button><button type="button" data-f="paying">Payants</button><button type="button" data-f="free">Gratuits</button><button type="button" data-f="expired">Expirés</button><button type="button" data-f="active">Actifs 7 j</button>
+      </div>
+      <button id="csv" class="ghost" type="button">Exporter CSV</button>
+    </div>
+    <div class="card flush"><div class="scroll"><table class="tbl"><thead><tr><th>Utilisateur</th><th>Formule</th><th>Jusqu'au</th><th>Inscrit</th><th>Vu</th><th class="r">Contactés</th><th class="r">Signés</th><th class="r">Sites</th><th class="r">Objectif</th></tr></thead><tbody id="users"></tbody></table></div><p id="users-n" class="muted small pad"></p></div>
   </section>
-  <section class="card">
-    <h2>Paiements Whop</h2>
-    <p class="msg" style="margin:-6px 0 12px">Chaque événement reçu du webhook. <b>En attente</b> = aucun compte avec cet e-mail (appliqué dès qu'il s'inscrit, ou attribue-le). <b>Sans e-mail</b> = Whop n'envoie pas l'e-mail : active la permission member:email:read sur le webhook.</p>
-    <div class="scroll"><table><thead><tr><th>Date</th><th>Événement</th><th>E-mail Whop</th><th>Formule</th><th>Statut</th><th>Compte</th><th>Attribuer à</th></tr></thead><tbody id="pay"></tbody></table></div>
-    <p id="pay-msg" class="msg"></p>
+
+  <!-- ───────── Payments ───────── -->
+  <section class="tab" id="tab-payments" hidden>
+    <article class="card">
+      <div class="card-h"><h2>Donner ou retirer une formule</h2></div>
+      <form id="grant" class="toolbar">
+        <input name="email" type="email" required placeholder="E-mail du compte">
+        <select name="plan"><option value="m1">Essentiel</option><option value="m3">Pro</option><option value="y1">Illimité</option><option value="free">Découverte (retirer)</option></select>
+        <input name="until" type="date" title="Fin de la formule (vide = sans fin)">
+        <button class="btn" type="submit">Appliquer</button>
+      </form>
+      <p id="grant-msg" class="muted small">Pour le support, un cadeau, ou un paiement que le webhook n'a pas pu rattacher.</p>
+    </article>
+    <article class="card flush">
+      <div class="card-h pad"><h2>Événements Whop</h2><span class="muted small">En attente = aucun compte avec cet e-mail · Sans e-mail = permission member:email:read manquante</span></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Date</th><th>Événement</th><th>E-mail Whop</th><th>Formule</th><th>Statut</th><th>Compte</th><th>Attribuer à</th></tr></thead><tbody id="pay"></tbody></table></div>
+      <p id="pay-msg" class="muted small pad"></p>
+    </article>
   </section>
-  <section class="card"><h2>Liste d'attente</h2><div class="scroll"><table><thead><tr><th>E-mail</th><th>Formule visée</th><th>Date</th></tr></thead><tbody id="wait"></tbody></table></div></section>
+
+  <!-- ───────── Waitlist ───────── -->
+  <section class="tab" id="tab-waitlist" hidden>
+    <article class="card flush"><div class="scroll"><table class="tbl"><thead><tr><th>E-mail</th><th>Formule visée</th><th>Date</th></tr></thead><tbody id="wait"></tbody></table></div></article>
+  </section>
 </main>
 
-<script type="module" src="js/admin.mjs"></script>
+<!-- user drawer -->
+<div id="drawer" class="drawer" hidden>
+  <div class="drawer-bg" data-close></div>
+  <aside class="drawer-p" role="dialog" aria-modal="true" aria-labelledby="d-email">
+    <button class="x" type="button" data-close aria-label="Fermer">×</button>
+    <div id="d-body"></div>
+  </aside>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="/js/admin.mjs"></script>
 </body>
 </html>
