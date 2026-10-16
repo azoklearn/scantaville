@@ -31,6 +31,10 @@ const el = (tag, props = {}, ...kids) => {
   return n;
 };
 
+// browser bar colour follows the page: night on the landing, white on the map
+new MutationObserver(() => { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = document.body.dataset.state === 'landing' ? '#050d24' : '#ffffff'; })
+  .observe(document.body, { attributes: true, attributeFilter: ['data-state'] });
+
 const FRANCE = { center: [2.45, 46.6], zoom: () => (isDesktop() ? 5.2 : 4.35) };
 const TIER_LABEL = { gold: 'Aucun site détecté', social: 'Insta / Facebook seulement', pending: 'À vérifier', silver: 'À vérifier : un domaine existe' };
 const CHANNELS = [

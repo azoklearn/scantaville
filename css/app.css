@@ -863,3 +863,48 @@ body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !importa
 .why-roi .win b { color: #4ee0a2; }
 .why-price { margin-top: 8px; text-align: center; font-size: 12.5px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .why { animation: none; opacity: 1; } }
+
+/* ───────── Landing: night theme (the scan view stays light) ───────── */
+body[data-state="landing"] { background: #050d24; color: #fff; }
+body[data-state="landing"] #stage { background: #050d24; }
+body[data-state="landing"] #map { opacity: .55; filter: invert(1) hue-rotate(180deg) saturate(1.4) brightness(.9); }
+body[data-state="landing"] .veil {
+  opacity: 1;
+  background:
+    radial-gradient(55% 45% at 15% 15%, rgba(29,91,255,.55), transparent 70%),
+    radial-gradient(45% 45% at 90% 75%, rgba(106,165,255,.32), transparent 70%),
+    radial-gradient(40% 35% at 60% 0%, rgba(124,92,255,.25), transparent 70%),
+    linear-gradient(180deg, rgba(5,13,36,.78) 0%, rgba(5,13,36,.88) 60%, #050d24 100%);
+}
+body[data-state="landing"] .veil::after { /* faint grid, like a radar */
+  content: ''; position: absolute; inset: 0; opacity: .07;
+  background-image: linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
+  background-size: 56px 56px; mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 80%); -webkit-mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 80%);
+}
+body[data-state="landing"] #hero::before { /* slow drifting glow behind the headline */
+  content: ''; position: absolute; z-index: -1; width: 520px; height: 520px; left: 50%; top: 42%; margin: -260px 0 0 -260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(29,91,255,.45), transparent 65%); filter: blur(20px); animation: drift 14s ease-in-out infinite alternate; pointer-events: none;
+}
+@keyframes drift { 0% { transform: translate(-30%, -10%) scale(1); } 100% { transform: translate(25%, 15%) scale(1.25); } }
+body[data-state="landing"] .top { background: rgba(5,13,36,.55); border-bottom: 1px solid rgba(255,255,255,.06); }
+body[data-state="landing"] .brand { color: #6aa5ff; }
+body[data-state="landing"] .mark { color: #fff; }
+body[data-state="landing"] .mark b { color: #6aa5ff; }
+body[data-state="landing"] .top .ghost { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+body[data-state="landing"] .top .ghost:hover { border-color: #6aa5ff; color: #fff; background: rgba(106,165,255,.14); }
+body[data-state="landing"] #hero h1 { color: #fff; text-shadow: 0 10px 40px rgba(5,13,36,.6); }
+body[data-state="landing"] #hero h1 em { background: linear-gradient(92deg, #6aa5ff 0%, #9cc3ff 45%, #4f86ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+body[data-state="landing"] .lede { color: #b6c5ea; }
+body[data-state="landing"] .hero-start { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 18px 50px -10px rgba(106,165,255,.75), 0 0 80px -10px rgba(29,91,255,.6); }
+body[data-state="landing"] .hero-start:hover { background: #fff; color: var(--blue); box-shadow: 0 0 0 1px #fff, 0 22px 60px -10px rgba(106,165,255,.9), 0 0 100px -6px rgba(29,91,255,.7); }
+body[data-state="landing"] .hphone { box-shadow: 0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08), 0 0 120px -20px rgba(29,91,255,.7), inset 0 0 0 2px rgba(255,255,255,.08); }
+
+/* FAQ in the same night palette */
+body[data-state="landing"] .faq { background: linear-gradient(180deg, #050d24 0%, #071433 100%); }
+body[data-state="landing"] .faq h2, body[data-state="landing"] .faq summary { color: #fff; }
+body[data-state="landing"] .faq details { border-bottom-color: rgba(255,255,255,.1); }
+body[data-state="landing"] .faq summary::after { color: #6aa5ff; }
+body[data-state="landing"] .faq details p { color: #b6c5ea; }
+body[data-state="landing"] .faq-foot { color: #7f90b8; }
+@media (prefers-reduced-motion: reduce) { body[data-state="landing"] #hero::before { animation: none; } }
+#map { transition: opacity .8s var(--ease), filter .8s var(--ease); }
