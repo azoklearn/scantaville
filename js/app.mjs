@@ -416,9 +416,9 @@ const REACT = {
 };
 /** shows one step: progress bar, word-by-word question, optional reaction to the previous answer */
 function showStep(name, reaction) {
-  const i = STEPS.indexOf(name);
+  const i = name === 'analyze' ? STEPS.length - 1.5 : STEPS.indexOf(name);
   $('#quiz-bar').style.width = Math.round(((i + 1) / STEPS.length) * 100) + '%';
-  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'city' ? 'Dernière étape' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
+  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'analyze' ? 'Analyse' : name === 'city' ? 'Dernière étape' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
   const r = $('#quiz-react'); r.hidden = !reaction; if (reaction) { r.textContent = reaction; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = ''; }
   $$('.quiz-step').forEach((sec) => { sec.hidden = sec.dataset.step !== name; if (!sec.hidden) { sec.style.animation = 'none'; void sec.offsetWidth; sec.style.animation = ''; } });
   const q = $(`.quiz-step[data-step="${name}"] .qq`);
@@ -447,7 +447,41 @@ function showResult() {
   const { data } = state; if (!data) return;
   $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
   $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
-  quizResult(); openOverlay('#quiz');
+  openOverlay('#quiz'); analyze(data, quizResult);
+}
+/** 2.5 s of suspense before the reveal: the TikTok beat between "the city is scanned" and "here is your number" */
+const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
+function analyze(data, done) {
+  showStep('analyze');
+  const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
+  const lines = [`${fr(data.stats.leads)} commerces sans site à ${data.name}`, `${sites} site${sites > 1 ? 's' : ''} par mois pour ${fr(quiz.goal)} €`, `Ton rythme sur ${quiz.hours || 5} h par semaine`, 'Ton plan sur mesure'];
+  const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52;
+  ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
+  list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, dur = reduce ? 300 : 2600, t0 = performance.now();
+  let shown = -1;
+  const tick = (now) => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 2);
+    ring.style.strokeDashoffset = C * (1 - e); pct.textContent = Math.round(e * 100) + ' %';
+    const n = Math.min(lines.length - 1, Math.floor(k * lines.length));
+    while (shown < n) { shown++; list.children[shown].classList.add('on'); sound.tick(); buzz(8); }
+    if (k < 1) requestAnimationFrame(tick); else { list.children[lines.length - 1].classList.add('on'); buzz([12, 40, 20]); setTimeout(done, reduce ? 0 : 350); }
+  };
+  requestAnimationFrame(tick);
+}
+// who you are, from the answers: a label people screenshot and share
+const PERSONAS = {
+  dm: ['✉️', 'Le Sniper des DM', 'Tu signes depuis ton canapé, message après message.'],
+  builder: ['🛠️', 'Le Builder', 'Tu vends la maquette, tu livres un site au-dessus du lot.'],
+  closer: ['🎯', 'Le Closer de rue', 'Tu pousses la porte, tu montres le site, tu signes.'],
+  sprint: ['⚡', 'Le Sprinteur du soir', 'Peu de temps, mais chaque sortie compte.'],
+  strat: ['♟️', 'Le Stratège', 'Script en main, tu avances méthodiquement.'],
+};
+function personaOf(q) {
+  if (q.social === 'shy') return PERSONAS.dm;
+  if (q.skill === 'yes') return PERSONAS.builder;
+  if (q.social === 'easy') return q.hours >= 10 ? PERSONAS.closer : PERSONAS.sprint;
+  return PERSONAS.strat;
 }
 let quizCalc = null, countRaf = 0;
 function quizResult() {
@@ -477,7 +511,9 @@ function quizResult() {
     ? `Temps nécessaire : environ ${hoursNeeded < 1 ? 'une heure' : Math.round(hoursNeeded) + ' h'} par semaine, tu en as ${quiz.hours}. Ton premier site peut être vendu cette semaine.`
     : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
   $('#quiz-sites').textContent = String(sites);
-  track('quiz', { goal: quiz.goal, hours: quiz.hours });
+  const [ic, pname, ptag] = personaOf(quiz);
+  $('#persona-ic').textContent = ic; $('#persona-name').textContent = pname; $('#persona-tag').textContent = ptag;
+  track('quiz', { goal: quiz.goal, hours: quiz.hours, persona: pname });
   showStep('result');
   const step = $('.quiz-step[data-step="result"]');
   for (const n of $$('.quiz-plan li, .quiz-close, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
@@ -502,6 +538,7 @@ function rainCoins(n) {
   sound.landed();
 }
 // the goal gauge: drag, the amount and the number of sites follow, a tick sounds every 500 EUR
+const GOAL_LIFE = [[400, '= ton abonnement salle + tes sorties'], [700, '= tes courses du mois'], [1000, '= un loyer en ville'], [1500, '= un iPhone neuf chaque mois'], [2200, '= un SMIC, en plus'], [3000, '= un week-end à Barcelone chaque semaine'], [4500, '= un voyage à Bali par mois'], [7000, '= un salaire de cadre sup'], [Infinity, '= une Golf neuve tous les 4 mois']];
 const GOAL_TAGS = [[500, 'un complément'], [1000, 'un vrai à-côté'], [2000, 'de quoi vivre'], [3500, 'un vrai salaire'], [6000, 'en faire ton métier'], [Infinity, 'niveau agence']];
 $('#gauge-ticks').replaceChildren(...Array.from({ length: 9 }, () => el('i')));
 let lastGaugeStep = -1;
@@ -511,7 +548,10 @@ function drawGauge() {
   $('#goal-tag').textContent = GOAL_TAGS.find(([max]) => v < max)[1];
   $('#gauge-fill').style.width = Math.max(2, pct) + '%';
   $('#goal-sites').textContent = String(Math.max(1, Math.ceil(v / SITE_PRICE)));
-  const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); }
+  const life = GOAL_LIFE.find(([max]) => v < max)[1], lifeEl = $('#goal-life');
+  if (lifeEl.textContent !== life) { lifeEl.textContent = life; lifeEl.classList.remove('in'); void lifeEl.offsetWidth; lifeEl.classList.add('in'); }
+  $('.gauge').style.setProperty('--heat', String(Math.min(1, (v - r.min) / (r.max - r.min))));
+  const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); buzz(6); }
   quiz.goal = v;
 }
 $('#goal-gauge').addEventListener('input', drawGauge);
@@ -520,6 +560,7 @@ $('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-ga
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   const key = box.dataset.key, v = b.dataset.v;
+  burst(b, e); sound.unlock(); sound.flip(); buzz(14);
   quiz[key] = key === 'hours' ? Number(v) : v;
   $$('button', box).forEach((x) => x.classList.toggle('picked', x === b));
   const next = STEPS[STEPS.indexOf(key) + 1];
@@ -529,6 +570,54 @@ $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
     showStep(next, REACT[key]?.[v]);
   }, 380);
 }));
+/** a small burst of blue sparks from where the answer was tapped */
+function burst(btn, e) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = btn.getBoundingClientRect(), x = (e.clientX || r.left + r.width / 2) - r.left, y = (e.clientY || r.top + r.height / 2) - r.top;
+  for (let i = 0; i < 14; i++) {
+    const a = (Math.PI * 2 * i) / 14 + Math.random() * .4, d = 34 + Math.random() * 40;
+    const p = el('i', { class: 'spark', style: `left:${x}px;top:${y}px;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d}px` });
+    btn.append(p); setTimeout(() => p.remove(), 650);
+  }
+}
+$('#quiz-share').addEventListener('click', shareStory);
+/** 1080x1920 story image: goal, city, profile. Shared with the system sheet (TikTok, Insta...) or downloaded. */
+async function shareStory() {
+  const btn = $('#quiz-share'); btn.disabled = true;
+  try {
+    await document.fonts?.ready;
+    const W = 1080, H = 1920, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#3b74ff'); bg.addColorStop(.55, '#1d5bff'); bg.addColorStop(1, '#0a2a8a');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.globalAlpha = .08; g.fillStyle = '#fff';
+    for (let i = 0; i < 26; i++) { g.beginPath(); g.arc((i * 397) % W, (i * 613) % H, 6 + (i % 5) * 5, 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
+    const font = (w, px, fam = 'Archivo') => `${w} ${px}px "${fam}", "Helvetica Neue", Arial, sans-serif`;
+    const fit = (text, w, px, fam, y, max = 940) => { let s = px; do { g.font = font(w, s, fam); s -= 4; } while (g.measureText(text).width > max && s > 20); g.fillText(text, W / 2, y); };
+    g.textAlign = 'center'; g.fillStyle = '#fff';
+    g.font = font(800, 54); g.fillText('scantaville', W / 2, 170);
+    g.font = font(500, 40, 'Schibsted Grotesk'); g.fillStyle = '#d6e3ff'; g.fillText('Mon objectif', W / 2, 560);
+    g.fillStyle = '#fff'; fit(`${fr(quiz.goal)} €`, 900, 230, 'Archivo', 790);
+    g.font = font(700, 64); g.fillText('par mois', W / 2, 880);
+    const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
+    g.fillStyle = '#d6e3ff';
+    fit(`${sites} site${sites > 1 ? 's' : ''} à vendre aux commerces de ${state.data?.name || 'ma ville'}`, 500, 42, 'Schibsted Grotesk', 1000);
+    if (state.data) fit(`${fr(state.data.stats.leads)} commerces n’y ont pas de site`, 500, 42, 'Schibsted Grotesk', 1060);
+    const [ic, pname] = personaOf(quiz);
+    g.fillStyle = 'rgba(255,255,255,.14)'; const bw = 760, bx = (W - bw) / 2; g.beginPath(); g.roundRect?.(bx, 1180, bw, 200, 40); g.fill();
+    g.fillStyle = '#d6e3ff'; g.font = font(500, 34, 'Schibsted Grotesk'); g.fillText('Mon profil', W / 2, 1250);
+    g.fillStyle = '#fff'; fit(`${ic} ${pname}`, 800, 66, 'Archivo', 1335, 700);
+    g.fillStyle = '#fff'; g.beginPath(); g.roundRect?.(190, 1560, 700, 120, 60); g.fill();
+    g.fillStyle = '#1d5bff'; g.font = font(800, 48); g.fillText('Fais le tien : scantaville.fr', W / 2, 1636);
+    g.fillStyle = '#b9ccff'; g.font = font(400, 28, 'Schibsted Grotesk'); g.fillText('Objectif personnel, pas une promesse de revenu', W / 2, 1790);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    const file = new File([blob], 'mon-objectif-scantaville.png', { type: 'image/png' });
+    track('quiz_share', { goal: quiz.goal });
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text: 'Mon objectif avec ScanTaVille 👉 scantaville.fr' }).catch(() => {}); }
+    else { const a = el('a', { href: URL.createObjectURL(blob), download: file.name }); a.click(); toast('Image téléchargée : poste-la en story !'); }
+  } finally { btn.disabled = false; }
+}
 $('#hero-start').addEventListener('click', startQuiz);
 if (new URLSearchParams(location.search).has('start')) { history.replaceState(null, '', location.pathname); setTimeout(startQuiz, 300); } // "Faire mon plan" from plan.html
 if (store.getMyPlan()) $('#btn-plan').hidden = false;

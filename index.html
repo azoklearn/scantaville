@@ -266,6 +266,7 @@
             <div class="gauge-track"><div id="gauge-fill" class="gauge-fill"></div><div id="gauge-ticks" class="gauge-ticks" aria-hidden="true"></div></div>
             <input id="goal-gauge" type="range" min="200" max="10000" step="100" value="1000" aria-label="Objectif mensuel en euros">
             <div class="gauge-x"><span>200 €</span><span>10 000 €</span></div>
+            <p class="gauge-life" id="goal-life" aria-live="polite"></p>
             <p class="gauge-sites"><b id="goal-sites">3</b> sites à vendre par mois, à 400 € le site</p>
           </div>
           <button id="goal-next" class="cta" type="button">C'est mon objectif →</button>
@@ -309,7 +310,13 @@
     </form>
 
         </section>
+        <section class="quiz-step quiz-analyze" data-step="analyze" hidden>
+          <div class="an-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="bg"/><circle id="an-ring" cx="60" cy="60" r="52" class="fg"/></svg><b id="an-pct">0 %</b></div>
+          <h2 class="quiz-h">On prépare ton plan…</h2>
+          <ul class="an-list" id="an-list"></ul>
+        </section>
         <section class="quiz-step quiz-result" data-step="result" hidden>
+          <div class="persona" id="persona"><span class="persona-ic" id="persona-ic"></span><div><small>Ton profil</small><b id="persona-name"></b><span id="persona-tag"></span></div></div>
           <h2 id="quiz-title" class="quiz-h"><b id="quiz-count" class="accent"></b> commerces sans site web à <span id="quiz-city-h"></span>.</h2>
           <p class="quiz-q">Ton objectif</p>
           <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, avec <b id="quiz-sites"></b> site(s) vendu(s) à 400 €</span></p>
@@ -318,6 +325,7 @@
           <ol id="quiz-plan" class="quiz-plan"></ol>
           <p class="quiz-close"><b id="quiz-first"></b></p>
           <button id="quiz-go" class="cta" type="button">Je lance mon plan</button>
+          <button id="quiz-share" class="ghost quiz-share" type="button">Partager mon objectif en story ↗</button>
           <a class="quiz-planlink" href="/plan.html">Suivre mon plan jour après jour →</a>
           <p class="fine">Estimation illustrative, pas une promesse : ça dépend de ton effort, de ta ville et de ta façon de présenter.</p>
         </section>
