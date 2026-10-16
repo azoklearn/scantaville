@@ -211,9 +211,15 @@ async function scan(city) {
   state.resultShown = false;
   if (fromQuiz) {
     state.analyzing = true; input.blur(); suggest.hidden = true;
-    prefetch = loadCity(city, {});
+    const note = $('#an-note'); note.hidden = true;
+    let analysed = false;
+    prefetch = loadCity(city, { onStatus: (t) => { note.textContent = t; note.hidden = !analysed; note.dataset.t = t; } });
     prefetch.catch(() => {});
-    const [, ready] = await Promise.all([new Promise((res) => analyze(city, res)), prefetch.then((d) => d, () => null)]);
+    const [, ready] = await Promise.all([
+      new Promise((res) => analyze(city, () => { analysed = true; if (note.dataset.t) note.hidden = false; res(); })),
+      prefetch.then((d) => d, () => null),
+    ]);
+    note.hidden = true; delete note.dataset.t;
     state.analyzing = false;
     if (!ready || !ready.leads.some((l) => l.tier !== 'silver')) { $('#quiz').hidden = true; toast(ready ? 'OpenStreetMap est trop peu renseigné ici. Essaie la grande ville d\'à côté.' : 'Scan impossible pour le moment. Réessaie dans une minute.'); return; }
     const hiddenIds = new Set(store.getHidden());

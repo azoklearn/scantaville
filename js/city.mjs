@@ -91,11 +91,21 @@ function bboxOf(leads, center) {
   return b;
 }
 
+async function hasStaticFile(insee) {
+  try { const r = await fetch(`data/cities/${insee}.json`, { method: 'HEAD' }); return r.ok && /json/.test(r.headers.get('content-type') || ''); } catch { return false; }
+}
+
 /** @returns city object in the data/cities/*.json shape, plus { live: boolean } */
 export async function loadCity(city, { onStatus } = {}) {
   // Accounts on: the shops come from the database, which already hides what the plan has not unlocked.
   if (supa.enabled) {
-    const leads = await supa.cityLeads(city.insee);
+    let leads = await supa.cityLeads(city.insee);
+    // not scanned yet: scan it once on the server (stored for everyone), then read it like the others
+    if (!leads && !(await hasStaticFile(city.insee))) {
+      onStatus?.(`Premier scan de ${city.name} : ça peut prendre jusqu’à une minute…`);
+      const n = await supa.scanCity(city.insee);
+      if (n) leads = await supa.cityLeads(city.insee);
+    }
     if (leads) {
       const gold = leads.filter((l) => l.tier === 'gold').length, social = leads.filter((l) => l.tier === 'social').length;
       return { v: 1, insee: city.insee, name: city.name, slug: city.slug, dept: city.dept, population: city.population, center: city.center,

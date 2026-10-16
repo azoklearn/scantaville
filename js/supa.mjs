@@ -166,3 +166,17 @@ export async function claimPurchase(email) {
   if (error) return { error: /sign in/i.test(error.message) ? 'Connecte-toi d’abord.' : 'Vérification impossible pour le moment. Réessaie dans une minute.' };
   return { plan: data || null };
 }
+
+/** A city not in the database yet: the scan-city function reads it from OpenStreetMap once and stores it (up to ~2 min).
+ *  Returns the number of shops stored, or null when it failed. */
+export async function scanCity(id) {
+  if (!enabled) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/scan-city?id=${encodeURIComponent(id)}`, {
+      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, signal: AbortSignal.timeout(160000),
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.ok ? d.count : null;
+  } catch { return null; }
+}
