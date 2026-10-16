@@ -204,12 +204,24 @@ function fitOptions() {
 async function scan(city) {
   if (document.body.dataset.state === 'scanning' || state.analyzing) return;
   sound.unlock();
-  if (quiz.ready && !$('#quiz').hidden) { // from the quiz: analyse the profile first, the city scan comes after
+  // From the quiz: the profile is analysed while the city loads, then the plan shows straight away.
+  // The map scan still runs, hidden behind the plan, so the map is ready when the plan is closed.
+  const fromQuiz = quiz.ready && !$('#quiz').hidden;
+  let prefetch = null;
+  state.resultShown = false;
+  if (fromQuiz) {
     state.analyzing = true; input.blur(); suggest.hidden = true;
-    await new Promise((res) => analyze(city, res));
+    prefetch = loadCity(city, {});
+    prefetch.catch(() => {});
+    const [, ready] = await Promise.all([new Promise((res) => analyze(city, res)), prefetch.then((d) => d, () => null)]);
     state.analyzing = false;
+    if (!ready || !ready.leads.some((l) => l.tier !== 'silver')) { $('#quiz').hidden = true; toast(ready ? 'OpenStreetMap est trop peu renseigné ici. Essaie la grande ville d\'à côté.' : 'Scan impossible pour le moment. Réessaie dans une minute.'); return; }
+    const hiddenIds = new Set(store.getHidden());
+    for (const l of ready.leads) l._hidden = hiddenIds.has(l.id);
+    state.data = ready; state.city = city;
+    showResult(); state.resultShown = true;
   }
-  input.blur(); suggest.hidden = true; $('#quiz').hidden = true;
+  input.blur(); suggest.hidden = true; if (!fromQuiz) $('#quiz').hidden = true;
   window.scrollTo({ top: 0 });
   document.body.dataset.state = 'scanning';
   state.city = city; state.trade = 'all'; state.tiers = { gold: true, social: true }; state.listLimit = 200;
@@ -224,7 +236,7 @@ async function scan(city) {
   let data;
   try {
     await mapReady;
-    const dataP = loadCity(city, { onStatus: showMsg });
+    const dataP = prefetch || loadCity(city, { onStatus: showMsg });
     dataP.catch(() => {}); // handled below; avoids an unhandled rejection while the camera flies
     const center = city.center || (data = await dataP).center;
     await new Promise((res) => { map.once('moveend', res); map.flyTo({ center, zoom: 10.5, duration: 1600, essential: true }); });
@@ -258,7 +270,7 @@ async function scan(city) {
     duration: 3600,
     onCount: (n) => {
       numEl.textContent = fr(n);
-      if (document.body.dataset.state === 'scanning') { sound.tick(); countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump'); }
+      if (document.body.dataset.state === 'scanning' && !state.resultShown) { sound.tick(); countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump'); }
     },
     onDone: () => setTimeout(landed, 350),
   });
@@ -268,7 +280,7 @@ function landed() {
   const { rank } = state;
   document.body.dataset.state = 'scan';
   track('scan', { city: state.data.name, shops: state.data.stats.leads });
-  sound.landed();
+  if (!state.resultShown) sound.landed(); // silent when the plan is already on screen
   renderTierCounts();
   if (rank.rank) {
     const r = $('#hud-rank');
@@ -277,7 +289,7 @@ function landed() {
   }
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
-  setTimeout(() => (quiz.ready ? showResult() : openQuiz()), 900); // let the number land; the plan (or the quiz if it was skipped) follows
+  if (!state.resultShown) setTimeout(() => (quiz.ready ? showResult() : openQuiz()), 900); // let the number land; the plan (or the quiz if it was skipped) follows
 }
 
 /** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
