@@ -582,21 +582,29 @@ function rainCoins(n) {
   sound.landed();
 }
 // the goal gauge: drag, the amount and the number of sites follow, a tick sounds every 500 EUR
-const GOAL_LIFE = [[400, '= ton abonnement salle + tes sorties'], [700, '= tes courses du mois'], [1000, '= un loyer en ville'], [1500, '= un iPhone neuf chaque mois'], [2200, '= un SMIC, en plus'], [3000, '= un week-end à Barcelone chaque semaine'], [4500, '= un voyage à Bali par mois'], [7000, '= un salaire de cadre sup'], [Infinity, '= une Golf neuve tous les 4 mois']];
-const GOAL_TAGS = [[500, 'un complément'], [1000, 'un vrai à-côté'], [2000, 'de quoi vivre'], [3500, 'un vrai salaire'], [6000, 'en faire ton métier'], [Infinity, 'niveau agence']];
-$('#gauge-ticks').replaceChildren(...Array.from({ length: 9 }, () => el('i')));
 let lastGaugeStep = -1;
 function drawGauge() {
   const r = $('#goal-gauge'), v = Number(r.value), pct = ((v - r.min) / (r.max - r.min)) * 100;
   const vb = $('#goal-val'); vb.textContent = fr(v) + ' €'; vb.classList.add('pop'); setTimeout(() => vb.classList.remove('pop'), 120);
-  $('#goal-tag').textContent = GOAL_TAGS.find(([max]) => v < max)[1];
-  $('#gauge-fill').style.width = Math.max(2, pct) + '%';
-  $('#goal-sites').textContent = String(Math.max(1, Math.ceil(v / SITE_PRICE)));
-  const life = GOAL_LIFE.find(([max]) => v < max)[1], lifeEl = $('#goal-life');
-  if (lifeEl.textContent !== life) { lifeEl.textContent = life; lifeEl.classList.remove('in'); void lifeEl.offsetWidth; lifeEl.classList.add('in'); }
-  $('.gauge').style.setProperty('--heat', String(Math.min(1, (v - r.min) / (r.max - r.min))));
+  $('#gauge-fill').style.width = pct + '%';
+  $('#gauge-thumb').style.left = pct + '%';
+  $('.gauge').style.setProperty('--heat', String(pct / 100));
   const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); buzz(6); }
   quiz.goal = v;
+}
+// touch-friendly drag: the whole track (tall hit area) follows the finger, the page does not scroll while dragging
+{
+  const track = $('#gauge-track'), range = $('#goal-gauge');
+  const setFromX = (x) => {
+    const rect = track.getBoundingClientRect(), k = Math.min(1, Math.max(0, (x - rect.left) / rect.width));
+    const min = +range.min, max = +range.max, step = +range.step;
+    range.value = String(Math.round((min + k * (max - min)) / step) * step); drawGauge();
+  };
+  let dragging = false;
+  track.addEventListener('pointerdown', (e) => { e.preventDefault(); sound.unlock(); try { track.setPointerCapture(e.pointerId); } catch { /* synthetic event */ } dragging = true; track.classList.add('drag'); setFromX(e.clientX); });
+  track.addEventListener('pointermove', (e) => { if (dragging) setFromX(e.clientX); });
+  const end = (e) => { dragging = false; try { track.releasePointerCapture(e.pointerId); } catch { /* not captured */ } track.classList.remove('drag'); };
+  track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
 }
 $('#goal-gauge').addEventListener('input', drawGauge);
 $('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('profile', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. On construit ton plan.`); });
