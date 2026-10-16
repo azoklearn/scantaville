@@ -416,7 +416,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverl
 // contacts" ratio as elsewhere (CONTACTS_PER_SALE) and 400 EUR per site; both are shown, never hidden.
 const SITE_PRICE = 400, CONTACTS_PER_SALE = 2, MIN_PER_CONTACT = 10, MIN_PER_SITE = 120;
 const quiz = { profile: '', goal: 0, hours: 0, skill: '', social: '', done: false, ready: false };
-const STEPS = ['profile', 'goal', 'hours', 'skill', 'social', 'city', 'result'];
+const STEPS = ['goal', 'profile', 'hours', 'skill', 'social', 'city', 'result']; // the money question opens the quiz
 const REACT = {
   profile: { student: 'Parfait : les commerces autour du campus sont souvent les premiers à dire oui.', job: 'Le soir et le week-end suffisent pour commencer. On calibre le plan là-dessus.', free: 'Tu as déjà le statut : il ne te manque que les clients. On va les trouver.', none: 'Aucun diplôme, aucun capital : juste des commerces à contacter. On démarre.' },
   hours: { 2: '2 h, c’est un site par mois. Petit, mais c’est un début.', 5: '5 h par semaine, ça suffit pour plusieurs sites par mois.', 10: '10 h par semaine : tu peux en faire un vrai revenu.', 20: '20 h et plus : tu es en mode agence.' },
@@ -441,7 +441,7 @@ function startQuiz() {
   quiz.done = false; quiz.ready = false; quizCalc = null;
   $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
   $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
-  showStep('profile'); openOverlay('#quiz');
+  showStep('goal'); openOverlay('#quiz');
   track('quiz_start');
 }
 /** entry after a scan launched without the quiz (quick chip, deep link): same steps, the city is known */
@@ -450,7 +450,7 @@ function openQuiz() {
   quiz.done = false; quiz.ready = false; quizCalc = null;
   $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
   $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
-  showStep('profile'); openOverlay('#quiz');
+  showStep('goal'); openOverlay('#quiz');
 }
 function showResult() {
   const { data } = state; if (!data) return;
@@ -594,7 +594,7 @@ function drawGauge() {
   quiz.goal = v;
 }
 $('#goal-gauge').addEventListener('input', drawGauge);
-$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('hours', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. Voyons ton temps.`); });
+$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('profile', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. On construit ton plan.`); });
 
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
