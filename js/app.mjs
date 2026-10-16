@@ -449,6 +449,35 @@ function showResult() {
   $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
   openOverlay('#quiz'); analyze(data, quizResult);
 }
+/** end of the quiz: why subscribing pays for itself. Real numbers of the scanned city, real prices, no fake scarcity. */
+function renderWhy(sites, contacts) {
+  const d = state.data, city = d.name;
+  const pro = planById('m3'), cheapest = PLANS.reduce((a, p) => (p.price / p.months < a.price / a.months ? p : a));
+  // 3 real shops of the city, name hidden: the trade shows it is real, the blur shows what is behind the paywall
+  const pool = d.leads.filter((l) => l.tier !== 'silver' && !l._hidden);
+  const seen = new Set(), picks = [];
+  for (const l of pool) { if (seen.has(l.trade)) continue; seen.add(l.trade); picks.push(l); if (picks.length === 3) break; }
+  $('#why-teaser').replaceChildren(...picks.map((l) => el('li', {},
+    el('span', { class: 'why-tr', text: TRADES[l.trade]?.label || 'Commerce' }),
+    el('b', { class: 'why-blur', text: (l.name && !l._locked ? l.name : 'Nom du commerce').replace(/./g, (c) => (c === ' ' ? ' ' : '●')).slice(0, 18) }),
+    el('small', { text: l.social && (l.social.instagram || l.social.facebook) ? 'Insta/Facebook, pas de site' : 'aucun site web' }), el('i', { 'aria-hidden': 'true', text: '🔒' }))),
+    el('li', { class: 'why-more', text: `+ ${fr(Math.max(0, pool.length - picks.length))} autres à ${city}` }));
+  const steps = [
+    ['🗺️', 'On trouve tes clients', `${fr(pool.length)} commerces sans site à ${city}, avec adresse, téléphone et horaires. Tu n’as rien à chercher.`],
+    ['⚡', 'Le site est déjà fait', 'Une maquette à leur nom en 1 seconde, différente pour chaque métier. Tu la montres sur ton téléphone.'],
+    ['💬', 'Tu sais quoi dire', 'Scripts mot pour mot en boutique, en DM et par e-mail, et les réponses aux objections.'],
+    ['🧾', 'Tu encaisses proprement', 'Devis et facture en 1 clic, mise en ligne du site vendu à son adresse.'],
+  ];
+  $('#why-list').replaceChildren(...steps.map(([ic, t, p]) => el('li', {}, el('span', { class: 'why-ic', text: ic }), el('div', {}, el('b', { text: t }), el('p', { text: p })))));
+  const payback = Math.floor(SITE_PRICE / pro.price);
+  $('#why-roi').replaceChildren(
+    el('div', {}, el('small', { text: `Formule ${pro.name}` }), el('b', { text: priceLabel(pro) }), el('span', { text: pro.cycle })),
+    el('i', { 'aria-hidden': 'true', text: '→' }),
+    el('div', { class: 'win' }, el('small', { text: '1 seul site vendu' }), el('b', { text: `${fr(SITE_PRICE)} €` }), el('span', { text: `rembourse ${payback} fois la formule` })),
+  );
+  $('#why-price').textContent = `Dès ${perMonthLabel(cheapest)} par mois · paiement sécurisé · ton objectif : ${fr(quiz.goal)} € avec ${fr(contacts)} contacts par mois`;
+  $('#quiz-go').textContent = store.planLevel() > 0 ? 'Voir mes commerces' : `Débloquer mes ${fr(pool.length)} commerces`;
+}
 /** 2.5 s of suspense before the reveal: the TikTok beat between "the city is scanned" and "here is your number" */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
 function analyze(data, done) {
@@ -511,6 +540,7 @@ function quizResult() {
     ? `Temps nécessaire : environ ${hoursNeeded < 1 ? 'une heure' : Math.round(hoursNeeded) + ' h'} par semaine, tu en as ${quiz.hours}. Ton premier site peut être vendu cette semaine.`
     : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
   $('#quiz-sites').textContent = String(sites);
+  renderWhy(sites, contacts);
   const [ic, pname, ptag] = personaOf(quiz);
   $('#persona-ic').textContent = ic; $('#persona-name').textContent = pname; $('#persona-tag').textContent = ptag;
   track('quiz', { goal: quiz.goal, hours: quiz.hours, persona: pname });
