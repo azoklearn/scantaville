@@ -202,8 +202,13 @@ function fitOptions() {
 }
 
 async function scan(city) {
-  if (document.body.dataset.state === 'scanning') return;
+  if (document.body.dataset.state === 'scanning' || state.analyzing) return;
   sound.unlock();
+  if (quiz.ready && !$('#quiz').hidden) { // from the quiz: analyse the profile first, the city scan comes after
+    state.analyzing = true; input.blur(); suggest.hidden = true;
+    await new Promise((res) => analyze(city, res));
+    state.analyzing = false;
+  }
   input.blur(); suggest.hidden = true; $('#quiz').hidden = true;
   window.scrollTo({ top: 0 });
   document.body.dataset.state = 'scanning';
@@ -456,7 +461,7 @@ function showResult() {
   const { data } = state; if (!data) return;
   $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
   $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
-  openOverlay('#quiz'); analyze(data, quizResult);
+  openOverlay('#quiz'); quizResult();
 }
 /** end of the quiz: why subscribing pays for itself. Real numbers of the scanned city, real prices, no fake scarcity. */
 function renderWhy(sites, contacts) {
@@ -487,12 +492,12 @@ function renderWhy(sites, contacts) {
   $('#why-price').textContent = `Dès ${perMonthLabel(cheapest)} par mois · paiement sécurisé · ton objectif : ${fr(quiz.goal)} € avec ${fr(contacts)} contacts par mois`;
   $('#quiz-go').textContent = store.planLevel() > 0 ? 'Voir mes commerces' : `Débloquer mes ${fr(pool.length)} commerces`;
 }
-/** 2.5 s of suspense before the reveal: the TikTok beat between "the city is scanned" and "here is your number" */
+/** 2.5 s of suspense once the city is chosen: the profile is analysed, then the city scan starts */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
-function analyze(data, done) {
+function analyze(city, done) {
   showStep('analyze');
   const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
-  const lines = [`${fr(data.stats.leads)} commerces sans site à ${data.name}`, `${sites} site${sites > 1 ? 's' : ''} par mois pour ${fr(quiz.goal)} €`, `Ton rythme sur ${quiz.hours || 5} h par semaine`, 'Ton plan sur mesure'];
+  const lines = [`Objectif : ${fr(quiz.goal)} € par mois`, `${sites} site${sites > 1 ? 's' : ''} à vendre chaque mois`, `Profil : ${personaOf(quiz)[1]}, ${quiz.hours || 5} h par semaine`, `Scan de ${city.name} en préparation`];
   const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52;
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
   list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
