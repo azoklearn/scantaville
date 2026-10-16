@@ -836,3 +836,7 @@ body[data-gate="on"] #panel, body[data-gate="on"] #dock { display: none !importa
 @keyframes persona { from { opacity: 0; transform: translateY(-10px) scale(.95); } }
 .quiz-share { width: 100%; margin-top: 8px; opacity: 0; animation: rise .5s 2.1s var(--ease) forwards; }
 @media (prefers-reduced-motion: reduce) { .spark { display: none; } .persona, .quiz-share, .an-list li.on, .gauge-life.in { animation: none; opacity: 1; } }
+/* the goal amount opens the result */
+#quiz .quiz-q--top { margin-top: 0; }
+#quiz .quiz-result .quiz-big { margin-bottom: 16px; }
+#quiz .quiz-result .quiz-big b { animation: life .5s cubic-bezier(.2,1.4,.4,1) both; }
