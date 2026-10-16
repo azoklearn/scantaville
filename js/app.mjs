@@ -131,6 +131,11 @@ loadIndex().then((index) => {
   state.index = index;
   const cities = index.cities || [];
   if (!cities.length) return;
+  // landing strip: real totals of the pre-scanned cities, and a ticker of those cities
+  const totalLeads = cities.reduce((n, c) => n + (c.leads || 0), 0), lp = $('#lp-leads');
+  if (lp) { lp.dataset.to = totalLeads; lp.textContent = fr(totalLeads); }
+  const track = $('#lp-track');
+  if (track) { const row = [...cities].sort((a, b) => b.leads - a.leads).map((c) => el('span', {}, c.name, el('b', { text: fr(c.leads) }))); track.replaceChildren(...row, ...row.map((n) => n.cloneNode(true))); }
   const max = Math.max(...cities.map((c) => c.leads || 1));
   fog.setGlints(cities.filter((c) => c.center).map((c) => ({ center: c.center, weight: (c.leads || 1) / max })));
 
@@ -653,6 +658,26 @@ async function shareStory() {
   } finally { btn.disabled = false; }
 }
 $('#hero-start').addEventListener('click', startQuiz);
+$('#lp-start')?.addEventListener('click', startQuiz);
+// landing: reveal on scroll, count-up of the totals, the example sites load only when they come into view
+{
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const n = en.target; io.unobserve(n); n.classList.add('in');
+      const b = n.querySelector?.('#lp-leads');
+      if (b && b.dataset.to && !reduce) { const to = +b.dataset.to, t0 = performance.now(); const tick = (now) => { const k = Math.min(1, (now - t0) / 1400); b.textContent = fr(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
+      if (n.classList.contains('lp-demo')) {
+        try { const p = JSON.parse(n.dataset.demo); p.w = 1; n.querySelector('iframe').src = '/demo.html#' + encodePayload(p); } catch { /* bad example */ }
+      }
+    }
+  }, { rootMargin: '0px 0px -8% 0px' }) : null;
+  for (const n of $$('.rv')) { if (io) io.observe(n); else n.classList.add('in'); }
+  // the example sites render at phone width (390 px) and are scaled down to their frame
+  const fitDemos = () => { for (const f of $$('.lp-frame')) { const ifr = f.querySelector('iframe'); const k = (f.clientWidth - 16) / 390; ifr.style.transform = `scale(${k})`; f.style.height = Math.round(780 * k + 16) + 'px'; } };
+  fitDemos(); addEventListener('resize', fitDemos);
+}
 if (new URLSearchParams(location.search).has('start')) { history.replaceState(null, '', location.pathname); setTimeout(startQuiz, 300); } // "Faire mon plan" from plan.html
 if (store.getMyPlan()) $('#btn-plan').hidden = false;
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
