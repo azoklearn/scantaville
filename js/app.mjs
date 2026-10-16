@@ -494,21 +494,45 @@ function renderWhy(sites, contacts) {
 }
 /** 2.5 s of suspense once the city is chosen: the profile is analysed, then the city scan starts */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
+const START_REACT = { now: 'Parfait : ton plan démarre dès cette semaine.', month: 'Ok, on cale ton plan sur le mois qui vient.', later: 'Aucun souci : regarde ta ville, tu décides après.' };
+/** ~7 s: the profile is analysed, with a pause at 55 % for one question (the bar waits for the answer) */
 function analyze(city, done) {
   showStep('analyze');
   const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
   const lines = [`Objectif : ${fr(quiz.goal)} € par mois`, `${sites} site${sites > 1 ? 's' : ''} à vendre chaque mois`, `Profil : ${personaOf(quiz)[1]}, ${quiz.hours || 5} h par semaine`, `Scan de ${city.name} en préparation`];
-  const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52;
+  const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52, q = $('#an-q');
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
   list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, dur = reduce ? 300 : 2600, t0 = performance.now();
-  let shown = -1;
-  const tick = (now) => {
-    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 2);
-    ring.style.strokeDashoffset = C * (1 - e); pct.textContent = Math.round(e * 100) + ' %';
-    const n = Math.min(lines.length - 1, Math.floor(k * lines.length));
+  q.hidden = true; $$('#an-opts button').forEach((b) => b.classList.remove('picked')); list.hidden = false;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PAUSE = 0.55, A = reduce ? 200 : 3600, B = reduce ? 200 : 3200; // ms before / after the question
+  let shown = -1, t0 = performance.now(), from = 0, to = PAUSE, dur = A, asked = false;
+  const draw = (v) => {
+    ring.style.strokeDashoffset = C * (1 - v); pct.textContent = Math.round(v * 100) + ' %';
+    const n = Math.min(lines.length - 1, Math.floor(v * lines.length * 0.999));
     while (shown < n) { shown++; list.children[shown].classList.add('on'); sound.tick(); buzz(8); }
-    if (k < 1) requestAnimationFrame(tick); else { list.children[lines.length - 1].classList.add('on'); buzz([12, 40, 20]); setTimeout(done, reduce ? 0 : 350); }
+  };
+  const tick = (now) => {
+    const k = Math.min(1, (now - t0) / dur), v = from + (to - from) * (1 - Math.pow(1 - k, 2));
+    draw(v);
+    if (k < 1) return requestAnimationFrame(tick);
+    if (!asked) { // stop here and ask
+      asked = true; list.hidden = true; q.hidden = false; q.style.animation = 'none'; void q.offsetWidth; q.style.animation = '';
+      pct.classList.add('paused'); buzz(15);
+      $('#an-opts').onclick = (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        quiz.start = b.dataset.v; track('quiz_start_when', { when: quiz.start });
+        $$('#an-opts button').forEach((x) => x.classList.toggle('picked', x === b)); burst(b, e); sound.flip(); buzz(14);
+        $('#an-opts').onclick = null;
+        setTimeout(() => {
+          q.hidden = true; list.hidden = false; pct.classList.remove('paused');
+          const r = $('#quiz-react'); r.hidden = false; r.textContent = START_REACT[quiz.start]; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = '';
+          from = PAUSE; to = 1; dur = B; t0 = performance.now(); requestAnimationFrame(tick);
+        }, 450);
+      };
+      return;
+    }
+    list.children[lines.length - 1].classList.add('on'); buzz([12, 40, 20]); setTimeout(done, reduce ? 0 : 500);
   };
   requestAnimationFrame(tick);
 }
@@ -610,7 +634,7 @@ $('#goal-gauge').addEventListener('input', drawGauge);
 $('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('profile', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. On construit ton plan.`); });
 
 $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return;
+  const b = e.target.closest('button'); if (!b || !box.dataset.key) return; // the analysis question has its own handler
   const key = box.dataset.key, v = b.dataset.v;
   burst(b, e); sound.unlock(); sound.flip(); buzz(14);
   quiz[key] = key === 'hours' ? Number(v) : v;
