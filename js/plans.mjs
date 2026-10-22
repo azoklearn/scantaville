@@ -51,7 +51,7 @@ export const MANAGE_URL = 'https://whop.com/@me/settings/orders/'; // fallback: 
 
 export const FREE = {
   id: 'free', level: 0, name: 'Découverte',
-  perks: ['Scanne n’importe quelle ville', 'Vois combien de commerces n’ont pas de site', 'La carte de ta ville à partager'],
+  perks: ['Ton plan personnalisé pour ton objectif', 'Ton profil et ton rythme', 'Le suivi « Mon plan » avec journal de bord'],
 };
 
 /** Quotas by plan level [free, Essentiel, Pro, Illimité]. */

@@ -204,30 +204,9 @@ function fitOptions() {
 async function scan(city) {
   if (document.body.dataset.state === 'scanning' || state.analyzing) return;
   sound.unlock();
-  // From the quiz: the profile is analysed while the city loads, then the plan shows straight away.
-  // The map scan still runs, hidden behind the plan, so the map is ready when the plan is closed.
-  const fromQuiz = quiz.ready && !$('#quiz').hidden;
-  let prefetch = null;
-  state.resultShown = false;
-  if (fromQuiz) {
-    state.analyzing = true; input.blur(); suggest.hidden = true;
-    const note = $('#an-note'); note.hidden = true;
-    let analysed = false;
-    prefetch = loadCity(city, { onStatus: (t) => { note.textContent = t; note.hidden = !analysed; note.dataset.t = t; } });
-    prefetch.catch(() => {});
-    const [, ready] = await Promise.all([
-      new Promise((res) => analyze(city, () => { analysed = true; if (note.dataset.t) note.hidden = false; res(); })),
-      prefetch.then((d) => d, () => null),
-    ]);
-    note.hidden = true; delete note.dataset.t;
-    state.analyzing = false;
-    if (!ready || !ready.leads.some((l) => l.tier !== 'silver')) { $('#quiz').hidden = true; toast(ready ? 'OpenStreetMap est trop peu renseigné ici. Essaie la grande ville d\'à côté.' : 'Scan impossible pour le moment. Réessaie dans une minute.'); return; }
-    const hiddenIds = new Set(store.getHidden());
-    for (const l of ready.leads) l._hidden = hiddenIds.has(l.id);
-    state.data = ready; state.city = city;
-    showResult(); state.resultShown = true;
-  }
-  input.blur(); suggest.hidden = true; if (!fromQuiz) $('#quiz').hidden = true;
+  // the city scan is for subscribers: the plan (quiz) is free, the shops of the city are not
+  if (supa.enabled && store.planLevel() === 0) { $('#quiz').hidden = true; return planPaywall(); }
+  input.blur(); suggest.hidden = true; $('#quiz').hidden = true;
   window.scrollTo({ top: 0 });
   document.body.dataset.state = 'scanning';
   state.city = city; state.trade = 'all'; state.tiers = { gold: true, social: true }; state.listLimit = 200;
@@ -242,7 +221,7 @@ async function scan(city) {
   let data;
   try {
     await mapReady;
-    const dataP = prefetch || loadCity(city, { onStatus: showMsg });
+    const dataP = loadCity(city, { onStatus: showMsg });
     dataP.catch(() => {}); // handled below; avoids an unhandled rejection while the camera flies
     const center = city.center || (data = await dataP).center;
     await new Promise((res) => { map.once('moveend', res); map.flyTo({ center, zoom: 10.5, duration: 1600, essential: true }); });
@@ -276,7 +255,7 @@ async function scan(city) {
     duration: 3600,
     onCount: (n) => {
       numEl.textContent = fr(n);
-      if (document.body.dataset.state === 'scanning' && !state.resultShown) { sound.tick(); countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump'); }
+      if (document.body.dataset.state === 'scanning') { sound.tick(); countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump'); }
     },
     onDone: () => setTimeout(landed, 350),
   });
@@ -286,7 +265,7 @@ function landed() {
   const { rank } = state;
   document.body.dataset.state = 'scan';
   track('scan', { city: state.data.name, shops: state.data.stats.leads });
-  if (!state.resultShown) sound.landed(); // silent when the plan is already on screen
+  sound.landed();
   renderTierCounts();
   if (rank.rank) {
     const r = $('#hud-rank');
@@ -295,13 +274,13 @@ function landed() {
   }
   applyLocks(); renderFilters(); renderList(); renderGoal();
   if (isDesktop()) $('#panel').dataset.open = 'true';
-  if (!state.resultShown) setTimeout(() => (quiz.ready ? showResult() : openQuiz()), 900); // let the number land; the plan (or the quiz if it was skipped) follows
+  // the plan was made before paying: nothing to reopen, the map is the reward
 }
 
 /** The reveal is free to watch; the results need a (free) account. No-op when accounts are off or the user is signed in. */
 function askAccount() {
   const { data } = state;
-  state.gateTitle = data ? `${fr(data.stats.leads)} commerces sans site à ${data.name}. Crée ton compte pour les voir.` : '';
+  state.gateTitle = data ? `${fr(data.stats.leads)} commerces sans site à ${data.name}. Crée ton compte pour les voir.` : quizCalc ? 'Ton plan est prêt. Crée ton compte pour débloquer ta ville.' : '';
   if (state.gateTitle) $('#auth-title').textContent = state.gateTitle;
   openOverlay('#auth');
 }
@@ -439,7 +418,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverl
 // contacts" ratio as elsewhere (CONTACTS_PER_SALE) and 400 EUR per site; both are shown, never hidden.
 const SITE_PRICE = 400, CONTACTS_PER_SALE = 2, MIN_PER_CONTACT = 10, MIN_PER_SITE = 120;
 const quiz = { profile: '', goal: 0, hours: 0, skill: '', social: '', done: false, ready: false };
-const STEPS = ['goal', 'profile', 'hours', 'skill', 'social', 'city', 'result']; // the money question opens the quiz
+const STEPS = ['goal', 'profile', 'hours', 'skill', 'social', 'result']; // the money question opens the quiz; the city comes after payment
 const REACT = {
   profile: { student: 'Parfait : les commerces autour du campus sont souvent les premiers à dire oui.', job: 'Le soir et le week-end suffisent pour commencer. On calibre le plan là-dessus.', free: 'Tu as déjà le statut : il ne te manque que les clients. On va les trouver.', none: 'Aucun diplôme, aucun capital : juste des commerces à contacter. On démarre.' },
   hours: { 2: '2 h, c’est un site par mois. Petit, mais c’est un début.', 5: '5 h par semaine, ça suffit pour plusieurs sites par mois.', 10: '10 h par semaine : tu peux en faire un vrai revenu.', 20: '20 h et plus : tu es en mode agence.' },
@@ -448,9 +427,9 @@ const REACT = {
 };
 /** shows one step: progress bar, word-by-word question, optional reaction to the previous answer */
 function showStep(name, reaction) {
-  const i = name === 'analyze' ? STEPS.length - 1.5 : STEPS.indexOf(name);
+  const i = name === 'analyze' ? STEPS.length - 1.5 : name === 'city' ? STEPS.length - 1 : STEPS.indexOf(name);
   $('#quiz-bar').style.width = Math.round(((i + 1) / STEPS.length) * 100) + '%';
-  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'analyze' ? 'Analyse' : name === 'city' ? 'Dernière étape' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
+  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'analyze' ? 'Analyse' : name === 'city' ? 'Ta ville' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
   const r = $('#quiz-react'); r.hidden = !reaction; if (reaction) { r.textContent = reaction; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = ''; }
   $$('.quiz-step').forEach((sec) => { sec.hidden = sec.dataset.step !== name; if (!sec.hidden) { sec.style.animation = 'none'; void sec.offsetWidth; sec.style.animation = ''; } });
   const q = $(`.quiz-step[data-step="${name}"] .qq`);
@@ -461,41 +440,30 @@ function showStep(name, reaction) {
 }
 /** entry from the landing button: the pre-scan steps, city last */
 function startQuiz() {
+  if (supa.enabled && store.planLevel() > 0 && store.getMyPlan()) { quiz.ready = true; quiz.goal = store.getMyPlan().goal; showStep('city'); openOverlay('#quiz'); return; } // subscriber: straight to the city
   quiz.done = false; quiz.ready = false; quizCalc = null;
   $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
   $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
   showStep('goal'); openOverlay('#quiz');
   track('quiz_start');
 }
-/** entry after a scan launched without the quiz (quick chip, deep link): same steps, the city is known */
-function openQuiz() {
-  if (!state.data) return;
-  quiz.done = false; quiz.ready = false; quizCalc = null;
-  $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
-  $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
-  showStep('goal'); openOverlay('#quiz');
-}
-function showResult() {
-  const { data } = state; if (!data) return;
-  $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
-  $('#quiz-city-h').textContent = data.name; $('#quiz-count').textContent = fr(data.stats.leads);
-  openOverlay('#quiz'); quizResult();
-}
 /** end of the quiz: why subscribing pays for itself. Real numbers of the scanned city, real prices, no fake scarcity. */
 function renderWhy(sites, contacts) {
-  const d = state.data, city = d.name;
+  const d = state.data, city = d?.name || 'ta ville';
   const pro = planById('m3'), cheapest = PLANS.reduce((a, p) => (p.price / p.months < a.price / a.months ? p : a));
   // 3 real shops of the city, name hidden: the trade shows it is real, the blur shows what is behind the paywall
-  const pool = d.leads.filter((l) => l.tier !== 'silver' && !l._hidden);
+  // before paying there is no city yet: illustrative rows, names hidden
+  const pool = d ? d.leads.filter((l) => l.tier !== 'silver' && !l._hidden)
+    : [{ trade: 'coiffeur', social: {} }, { trade: 'restaurant', social: { instagram: 1 } }, { trade: 'boulangerie', social: {} }];
   const seen = new Set(), picks = [];
   for (const l of pool) { if (seen.has(l.trade)) continue; seen.add(l.trade); picks.push(l); if (picks.length === 3) break; }
   $('#why-teaser').replaceChildren(...picks.map((l) => el('li', {},
     el('span', { class: 'why-tr', text: TRADES[l.trade]?.label || 'Commerce' }),
     el('b', { class: 'why-blur', text: (l.name && !l._locked ? l.name : 'Nom du commerce').replace(/./g, (c) => (c === ' ' ? ' ' : '●')).slice(0, 18) }),
     el('small', { text: l.social && (l.social.instagram || l.social.facebook) ? 'Insta/Facebook, pas de site' : 'aucun site web' }), el('i', { 'aria-hidden': 'true', text: '🔒' }))),
-    el('li', { class: 'why-more', text: `+ ${fr(Math.max(0, pool.length - picks.length))} autres à ${city}` }));
+    el('li', { class: 'why-more', text: d ? `+ ${fr(Math.max(0, pool.length - picks.length))} autres à ${city}` : '+ des dizaines d’autres dans ta ville' }));
   const steps = [
-    ['🗺️', 'On trouve tes clients', `${fr(pool.length)} commerces sans site à ${city}, avec adresse, téléphone et horaires. Tu n’as rien à chercher.`],
+    ['🗺️', 'On trouve tes clients', d ? `${fr(pool.length)} commerces sans site à ${city}, avec adresse, téléphone et horaires. Tu n’as rien à chercher.` : 'On scanne ta ville et on te montre chaque commerce sans site, avec adresse, téléphone et horaires.'],
     ['⚡', 'Le site est déjà fait', 'Une maquette à leur nom en 1 seconde, différente pour chaque métier. Tu la montres sur ton téléphone.'],
     ['💬', 'Tu sais quoi dire', 'Scripts mot pour mot en boutique, en DM et par e-mail, et les réponses aux objections.'],
     ['🧾', 'Tu encaisses proprement', 'Devis et facture en 1 clic, mise en ligne du site vendu à son adresse.'],
@@ -508,7 +476,7 @@ function renderWhy(sites, contacts) {
     el('div', { class: 'win' }, el('small', { text: '1 seul site vendu' }), el('b', { text: `${fr(SITE_PRICE)} €` }), el('span', { text: `rembourse ${payback} fois la formule` })),
   );
   $('#why-price').textContent = `Dès ${perMonthLabel(cheapest)} par mois · paiement sécurisé · ton objectif : ${fr(quiz.goal)} € avec ${fr(contacts)} contacts par mois`;
-  $('#quiz-go').textContent = store.planLevel() > 0 ? 'Voir mes commerces' : `Débloquer mes ${fr(pool.length)} commerces`;
+  $('#quiz-go').textContent = store.planLevel() > 0 ? 'Choisir ma ville →' : 'Débloquer ma ville →';
 }
 /** 2.5 s of suspense once the city is chosen: the profile is analysed, then the city scan starts */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
@@ -517,7 +485,7 @@ const START_REACT = { now: 'Parfait : ton plan démarre dès cette semaine.', mo
 function analyze(city, done) {
   showStep('analyze');
   const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
-  const lines = [`Objectif : ${fr(quiz.goal)} € par mois`, `${sites} site${sites > 1 ? 's' : ''} à vendre chaque mois`, `Profil : ${personaOf(quiz)[1]}, ${quiz.hours || 5} h par semaine`, `Scan de ${city.name} en préparation`];
+  const lines = [`Objectif : ${fr(quiz.goal)} € par mois`, `${sites} site${sites > 1 ? 's' : ''} à vendre chaque mois`, `Profil : ${personaOf(quiz)[1]}, ${quiz.hours || 5} h par semaine`, city ? `Scan de ${city.name} en préparation` : 'Ton plan sur mesure'];
   const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52, q = $('#an-q');
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
   list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
@@ -570,18 +538,19 @@ function personaOf(q) {
 }
 let quizCalc = null, countRaf = 0;
 function quizResult() {
-  if (!state.data) return;
-  const total = state.data.stats.leads, city = state.data.name;
+  const d = state.data, total = d?.stats.leads || 0, city = d?.name || '';
+  $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
+  $('#quiz-title').replaceChildren(...(d ? [el('b', { class: 'accent', text: fr(total) }), ` commerces sans site web à ${city}.`] : ['Ton plan est ', el('b', { class: 'accent', text: 'prêt' }), '.']));
   const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
   const contacts = sites * CONTACTS_PER_SALE;                                    // per month
   const perWeek = Math.max(1, Math.ceil(contacts / 4));
   const perContactDay = Math.max(1, Math.ceil(perWeek / 3));                     // 3 outing days a week
   const hoursNeeded = (contacts * MIN_PER_CONTACT + sites * MIN_PER_SITE) / 60 / 4; // per week
   const feasible = hoursNeeded <= quiz.hours * 1.15;
-  const months = Math.max(1, Math.floor(total / contacts)); // how long the city lasts at this pace
+  const months = Math.max(1, Math.floor((total || 150) / contacts)); // how long the city lasts at this pace
   quizCalc = { sites, contacts, perWeek, hoursNeeded, feasible };
   // what "Mon plan" (plan.html) follows day after day
-  store.setMyPlan({ goal: quiz.goal, hours: quiz.hours, profile: quiz.profile, skill: quiz.skill, social: quiz.social, city, insee: state.data.insee, total,
+  store.setMyPlan({ goal: quiz.goal, hours: quiz.hours, profile: quiz.profile, skill: quiz.skill, social: quiz.social, city: city || store.getMyPlan()?.city || '', insee: d?.insee || store.getMyPlan()?.insee || '', total,
     price: store.getMyPlan()?.price || SITE_PRICE, sites, contacts, perWeek, perDay: perContactDay, start: store.getMyPlan()?.start || store.dayKey() });
   pushCoachSoon(); $('#btn-plan').hidden = false;
   const plan = [
@@ -589,7 +558,8 @@ function quizResult() {
     ['Contacter ', el('b', { text: `${contacts} commerces dans le mois` }), `, soit ${perWeek} par semaine (${perContactDay} par sortie, 3 sorties) : un oui pour ${CONTACTS_PER_SALE} contacts, ça fait ${sites} vente${sites > 1 ? 's' : ''}.`],
     ['Pour chacun, ', el('b', { text: 'générer sa maquette en 1 seconde' }), quiz.skill === 'no' ? ' : rien à coder, tu la montres sur ton téléphone : « je vous ai déjà fait votre site ».' : ' et la montrer sur ton téléphone : « je vous ai déjà fait votre site ».'],
     [quiz.social === 'shy' ? 'Contacter par ' : 'Suivre ', el('b', { text: quiz.social === 'shy' ? 'DM Insta et e-mail, avec les scripts déjà écrits' : 'le script de vente et les réponses aux objections' }), ', encaisser un acompte avec le devis intégré.'],
-    [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`],
+    d ? [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`]
+      : ['Dès ton abonnement, ', el('b', { text: 'on scanne ta ville' }), ' et on te montre chaque commerce sans site : adresse, téléphone, horaires.'],
   ];
   $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, el('span', {}, ...parts)))); // one cell after the number: inline text
   $('#quiz-first').textContent = feasible
@@ -659,8 +629,7 @@ $$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
   $$('button', box).forEach((x) => x.classList.toggle('picked', x === b));
   const next = STEPS[STEPS.indexOf(key) + 1];
   setTimeout(() => {
-    if (next === 'city' && state.data) { quiz.ready = true; showResult(); return; } // city already scanned (chip / link)
-    if (next === 'city') quiz.ready = true;
+    if (next === 'result') { quiz.ready = true; analyze(null, () => quizResult()); return; } // last answer: analysis, then the plan
     showStep(next, REACT[key]?.[v]);
   }, 380);
 }));
@@ -737,12 +706,17 @@ if (new URLSearchParams(location.search).has('start')) { history.replaceState(nu
 if (store.getMyPlan()) $('#btn-plan').hidden = false;
 /** after the result: account, then plans (or straight to the shops for a subscriber) */
 function afterQuiz() {
-  quiz.done = true; $('#quiz').hidden = true;
-  if (updateGate()) askAccount();
-  else if (store.planLevel() === 0) lockedPaywall();
+  quiz.done = true;
+  if (!supa.enabled || store.planLevel() > 0) { quiz.ready = true; showStep('city'); return; } // paid: now the city
+  $('#quiz').hidden = true;
+  if (supa.enabled && !state.user) { state.afterAuth = 'paywall'; askAccount(); } else planPaywall();
+}
+/** before paying: the plan is ready, the city scan is what the plans unlock */
+function planPaywall() {
+  openPaywall(quiz.goal ? `Ton plan pour ${fr(quiz.goal)} € par mois est prêt. Choisis ta formule pour scanner ta ville et voir ses commerces.` : 'Choisis ta formule pour scanner ta ville et voir ses commerces sans site.', { minLevel: 1 });
 }
 $('#quiz-go').addEventListener('click', afterQuiz);
-for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done && state.data) afterQuiz(); });
+for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done && quizCalc && store.planLevel() === 0) { quiz.done = true; setTimeout(planPaywall, 200); } });
 
 function lockedPaywall() {
   const level = store.planLevel(), total = state.data.leads.filter((l) => l.tier !== 'silver' && !l._hidden).length;
@@ -1207,7 +1181,7 @@ if (supa.enabled) {
     if (error) return toast(error);
     form.elements.password.value = '';
     track(form.dataset.mode === 'signup' ? 'signup' : 'login');
-    setTimeout(() => { if (state.data && quiz.done && store.planLevel() === 0 && document.body.dataset.state === 'scan') lockedPaywall(); }, 1600); // account created, still no plan
+    setTimeout(() => { if (state.afterAuth === 'paywall') { state.afterAuth = ''; $('#auth').hidden = true; if (store.planLevel() === 0) planPaywall(); else { quiz.ready = true; showStep('city'); openOverlay('#quiz'); } } else if (state.data && quiz.done && store.planLevel() === 0 && document.body.dataset.state === 'scan') lockedPaywall(); }, 1600); // account created / signed in
     closeOverlays(); toast(form.dataset.mode === 'signup' ? 'Compte créé. Voici tes commerces.' : 'Connecté.');
   });
   $('#gate-btn').addEventListener('click', () => askAccount());
