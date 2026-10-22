@@ -561,7 +561,7 @@ function quizResult() {
     d ? [`À ${city}, tu as `, el('b', { text: `${fr(total)} commerces` }), ` à contacter : de quoi tenir ${months >= 24 ? 'plus de deux ans' : months > 1 ? `${months} mois` : 'le mois'} à ce rythme${months <= 2 ? ', puis passer à la ville voisine' : ''}.`]
       : ['Dès ton abonnement, ', el('b', { text: 'on scanne ta ville' }), ' et on te montre chaque commerce sans site : adresse, téléphone, horaires.'],
   ];
-  $('#quiz-plan').replaceChildren(...plan.map((parts) => el('li', {}, el('span', {}, ...parts)))); // one cell after the number: inline text
+  $('#quiz-plan').replaceChildren(...plan.map((parts, i) => el('li', { class: !d && i === plan.length - 1 ? 'locked' : null }, el('span', {}, ...parts)))); // one cell after the number: inline text
   $('#quiz-first').textContent = feasible
     ? `Temps nécessaire : environ ${hoursNeeded < 1 ? 'une heure' : Math.round(hoursNeeded) + ' h'} par semaine, tu en as ${quiz.hours}. Ton premier site peut être vendu cette semaine.`
     : `Il faut environ ${Math.round(hoursNeeded)} h par semaine pour ${fr(quiz.goal)} €, tu en as ${quiz.hours}. Avec ${quiz.hours} h, vise plutôt ${fr(Math.max(SITE_PRICE, Math.floor((quiz.hours * 60 * 4) / (CONTACTS_PER_SALE * MIN_PER_CONTACT + MIN_PER_SITE)) * SITE_PRICE))} € par mois, et monte ensuite.`;
@@ -713,7 +713,7 @@ function afterQuiz() {
 }
 /** before paying: the plan is ready, the city scan is what the plans unlock */
 function planPaywall() {
-  openPaywall(quiz.goal ? `Ton plan pour ${fr(quiz.goal)} € par mois est prêt. Choisis ta formule pour scanner ta ville et voir ses commerces.` : 'Choisis ta formule pour scanner ta ville et voir ses commerces sans site.', { minLevel: 1 });
+  openPaywall(quiz.goal ? 'Ton plan est prêt. Débloque ta ville.' : 'Scanne ta ville et vois ses commerces sans site.', { minLevel: 1 });
 }
 $('#quiz-go').addEventListener('click', afterQuiz);
 for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done && quizCalc && store.planLevel() === 0) { quiz.done = true; setTimeout(planPaywall, 200); } });
@@ -1074,21 +1074,33 @@ function openPaywall(title, { feature, minLevel, planId } = {}) {
 
 function renderPaywall() {
   const chosen = planById(pay.plan);
+  // what they just built in the quiz, so the paywall talks about THEIR plan
+  const recap = $('#pay-recap');
+  if (quizCalc && quiz.goal) {
+    const [ic, pname] = personaOf(quiz);
+    recap.hidden = false;
+    recap.replaceChildren(el('span', {}, '🎯 ', el('b', { text: `${fr(quiz.goal)} €` }), ' / mois'), el('span', {}, `${ic} ${pname}`), el('span', {}, '🏪 ', el('b', { text: String(quizCalc.sites) }), ` site${quizCalc.sites > 1 ? 's' : ''} / mois`));
+  } else recap.hidden = true;
+  $('#pay-sub').hidden = !recap.hidden; // the recap already says it
+  const best = PLANS.reduce((a, p) => (p.price / p.months < a.price / a.months ? p : a));
   $('#pay-plans').replaceChildren(...PLANS.map((p) => {
-    const off = p.level < pay.minLevel, save = savingPct(p);
+    const off = p.level < pay.minLevel, save = savingPct(p), on = p.id === pay.plan;
     return el('button', {
-      class: 'pay-plan', type: 'button', role: 'radio', 'aria-checked': String(p.id === pay.plan), 'aria-disabled': off ? 'true' : null,
+      class: 'pay-plan' + (p.popular ? ' popular' : ''), type: 'button', role: 'radio', 'aria-checked': String(on), 'aria-disabled': off ? 'true' : null,
       title: off ? 'Cette formule ne comprend pas la fonction demandée' : null,
       onclick: () => { if (off) return; pay.plan = p.id; renderPaywall(); },
-    }, save ? el('span', { class: 'pp-save', text: `−${save} %` }) : null,
-      el('b', { text: p.name }), el('span', { class: 'pp-period', text: p.period }),
-      el('span', { class: 'pp-price', text: priceLabel(p) }), el('span', { class: 'pp-month', text: p.months > 1 ? `${perMonthLabel(p)} / mois` : p.cycle.split(',')[0] }));
+    }, el('i', { class: 'pp-radio', 'aria-hidden': 'true' }),
+      el('span', { class: 'pp-main' }, el('b', { text: p.name }), el('span', { class: 'pp-period', text: p.period + (p.popular ? ' · le plus choisi' : p === best ? ' · meilleur prix' : '') })),
+      el('span', { class: 'pp-right' }, el('span', { class: 'pp-price', text: priceLabel(p) }), el('span', { class: 'pp-month', text: p.months > 1 ? `soit ${perMonthLabel(p)} / mois` : 'par mois' })),
+      save ? el('span', { class: 'pp-save', text: `−${save} %` }) : null);
   }));
-  $('#pay-perks').replaceChildren(...chosen.perks.map(perkNode));
-  $('#pay-go').textContent = chosen.checkoutUrl ? `Continuer · ${chosen.name} ${priceLabel(chosen)}` : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
+  const times = Math.floor(SITE_PRICE / chosen.price);
+  $('#pay-roi').replaceChildren('💸 ', el('b', { text: `1 seul site vendu (${fr(SITE_PRICE)} €)` }), ` rembourse ${times} fois la formule ${chosen.name}.`);
+  $('#pay-perks').replaceChildren(...chosen.perks.filter((x) => !/^Tout /.test(x.text)).slice(0, 5).map(perkNode));
+  $('#pay-go').textContent = chosen.checkoutUrl ? `Débloquer ma ville · ${priceLabel(chosen)}` : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
   $('#waitlist input').hidden = !!chosen.checkoutUrl; $('#waitlist input').required = !chosen.checkoutUrl;
   $('#pay-fine').textContent = chosen.checkoutUrl
-    ? 'Paiement sécurisé sur la page de notre prestataire.'
+    ? `Paiement sur Whop avec l’e-mail de ton compte. ${chosen.months > 1 ? `Renouvelé ${chosen.cycle}.` : 'Résiliable à tout moment.'}`
     : 'Prototype : le paiement n\'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l\'ouverture.';
 }
 

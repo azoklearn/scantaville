@@ -293,16 +293,19 @@
     <div class="overlay-bg" data-close></div>
     <article class="paycard" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
-      <p class="kicker"><i class="dot"></i> Abonnement</p>
+      <p class="kicker"><i class="dot"></i> Débloque ta ville</p>
       <h2 id="pay-title">Choisis ta formule</h2>
+      <div id="pay-recap" class="pay-recap" hidden></div>
       <p id="pay-sub" class="muted">Ton plan est prêt. Pour scanner ta ville, voir ses commerces et générer leurs sites, il faut une formule. Chacune comprend tout ce qu'offre la précédente.</p>
       <div id="pay-plans" class="pay-plans" role="radiogroup" aria-label="Formules"></div>
+      <p id="pay-roi" class="pay-roi"></p>
       <ul id="pay-perks" class="pay-perks"></ul>
       <form id="waitlist">
         <input type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail">
         <button id="pay-go" class="cta" type="submit">Continuer</button>
       </form>
-      <p id="pay-fine" class="fine">Prototype : le paiement n'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l'ouverture.</p>
+      <ul class="pay-trust" aria-label="Garanties"><li>🔒 Paiement sécurisé</li><li>⚡ Accès immédiat</li><li>↩︎ Résiliable en 2 clics</li></ul>
+      <p id="pay-fine" class="fine"></p>
     </article>
   </div>
 
@@ -395,10 +398,12 @@
           </div>
         </section>
         <section class="quiz-step quiz-result" data-step="result" hidden>
-          <p class="quiz-q quiz-q--top">Ton objectif</p>
-          <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, avec <b id="quiz-sites"></b> site(s) vendu(s) à 400 €</span></p>
-          <div class="quiz-coins" aria-hidden="true"></div>
-          <div class="persona" id="persona"><span class="persona-ic" id="persona-ic"></span><div><small>Ton profil</small><b id="persona-name"></b><span id="persona-tag"></span></div></div>
+          <div class="res-hero">
+            <p class="res-k"><span class="res-badge">Plan gratuit</span> Ton objectif</p>
+            <p class="quiz-big"><b id="quiz-euros">0 €</b><span>par mois, avec <b id="quiz-sites"></b> site(s) vendu(s) à 400 €</span></p>
+            <div class="quiz-coins" aria-hidden="true"></div>
+            <div class="persona" id="persona"><span class="persona-ic" id="persona-ic"></span><div><small>Ton profil</small><b id="persona-name"></b><span id="persona-tag"></span></div></div>
+          </div>
           <h2 id="quiz-title" class="quiz-h"><b id="quiz-count" class="accent"></b> commerces sans site web à <span id="quiz-city-h"></span>.</h2>
           <p class="quiz-q">Ton plan pour y arriver</p>
           <ol id="quiz-plan" class="quiz-plan"></ol>
