@@ -652,7 +652,6 @@ function go(id, push = true) {
   showStep(id);
   if (d.type === 'analyze') { syncQuizFromAnswers(); analyze(null, () => go(nextOf('analyze'))); }
   else if (d.type === 'potential') renderPotential();
-  else if (d.type === 'beforeafter') loadBeforeAfter();
   else if (d.type === 'plannow') renderPlanNow();
   track('quiz_step', { step: id });
 }
@@ -727,10 +726,10 @@ function renderFunnel() {
       sec.append(el('h2', { class: 'quiz-h f-title', text: 'Entre ton e-mail pour débloquer tes résultats.' }), form);
     } else if (d.type === 'beforeafter') {
       sec.append(el('h2', { class: 'quiz-h f-title', text: 'Avant, après.' }),
-        el('div', { class: 'f-ba' },
-          el('figure', {}, el('div', { class: 'f-ba-before' }, el('b', { text: 'Le Fournil d’Or' }), el('span', { text: 'Boulangerie · Tours' }), el('span', { text: '★ 4,6 · 12 rue Nationale' }), el('span', { class: 'f-nosite', text: 'Site web : aucun' })), el('figcaption', { text: 'Avant' })),
-          el('figure', {}, el('div', { class: 'f-ba-after' }, el('iframe', { title: 'Le site généré', id: 'f-ba-frame', tabindex: '-1' })), el('figcaption', { text: 'Une seconde plus tard' }))),
-        el('p', { class: 'f-body', text: 'Le commerce n’avait pas de site. ScanTaVille l’a généré en une seconde : c’est ce que tu montres au patron, et ce que tu lui vends.' }),
+        el('div', { class: 'f-ba f-ba-img' },
+          el('figure', {}, el('div', { class: 'f-dash' }, el('img', { src: '/img/ba-avant.jpg', alt: 'Tableau de bord de paiement Whop avant : 0,00 € de revenu brut', loading: 'lazy' })), el('figcaption', { text: 'Avant' })),
+          el('figure', {}, el('div', { class: 'f-dash' }, el('img', { src: '/img/ba-apres.jpg', alt: 'Tableau de bord de paiement Whop après : 10 459,60 € de revenu brut', loading: 'lazy' })), el('figcaption', { text: 'Après' }))),
+        el('p', { class: 'f-body', text: 'Un vrai tableau de bord de paiement, avant et après. C’est le genre de résultat que tu peux viser.' }),
         el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
     } else if (d.type === 'plannow') {
       sec.append(el('h2', { class: 'quiz-h f-title', id: 'f-now-h' }),
@@ -754,19 +753,6 @@ function renderPotential() {
   $('#f-range').textContent = `${fr(low)} € à ${fr(high)} €`;
   sound.landed();
   $('#f-tiles').replaceChildren(...[[fr(sites), 'sites à vendre'], [`${fr(SITE_PRICE)} €`, 'par site'], [`${fr(g)} €`, 'ton objectif']].map(([b, t]) => el('div', {}, el('b', { text: b }), el('span', { text: t }))));
-}
-/** the generated site renders at phone width (390 px) and is scaled to fill its frame exactly, no white strip */
-function fitBeforeAfter() {
-  const f = $('#f-ba-frame'), box = f?.parentElement; if (!box || !box.clientWidth) return;
-  const k = box.clientWidth / 390, h = Math.round(Math.min(780 * k, 440));
-  f.style.transform = `scale(${k})`;
-  box.style.height = h + 'px'; $('.f-ba-before').style.height = (h + 12) + 'px';
-}
-addEventListener('resize', fitBeforeAfter);
-function loadBeforeAfter() {
-  requestAnimationFrame(fitBeforeAfter);
-  const f = $('#f-ba-frame'); if (f.src) return;
-  f.src = '/demo.html#' + encodePayload({ n: 'Le Fournil d’Or', t: 'boulangerie', c: 'Tours', a: '12 rue Nationale, 37000 Tours', h: 'Tu-Sa 07:00-19:30; Su 07:00-13:00', w: 1 });
 }
 function renderPlanNow() {
   const name = store.getAuthor();
