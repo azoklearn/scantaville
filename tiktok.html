@@ -72,9 +72,24 @@
           <p class="f-range" id="pot-range"></p>
           <p class="f-body">par mois</p>
           <div class="f-tiles" id="pot-tiles"></div>
-          <button class="cta tt-next" type="button" data-next>Créer mon premier site →</button>
+          <button class="cta tt-next" type="button" data-next>Scanner ma ville →</button>
         </div>
         <div class="quiz-coins" aria-hidden="true"></div>
+      </section>
+
+      <!-- city (nothing is really scanned: filming only) -->
+      <section class="quiz-step" data-step="city" hidden>
+        <h2 class="quiz-h">Dans quelle ville tu veux tes clients ?</h2>
+        <form id="tt-city" class="tt-city">
+          <input name="city" type="text" required maxlength="40" placeholder="Tape ta ville…" autocomplete="address-level2" aria-label="Ta ville">
+          <button class="cta tt-next" type="submit">Scanner →</button>
+        </form>
+      </section>
+      <section class="quiz-step tt-cityscan" data-step="scan" hidden>
+        <h2 class="quiz-h" id="scan-h">Scan en cours…</h2>
+        <div class="tt-radar" aria-hidden="true"><i></i><i></i><i></i><span></span><span></span><span></span><span></span><span></span></div>
+        <p class="tt-count"><b id="scan-n">0</b><span id="scan-sub">commerces sans site trouvés</span></p>
+        <button class="cta tt-next" id="scan-go" type="button" hidden data-next>Créer leur site →</button>
       </section>
 
       <!-- 7. site being built (nothing shown at the end: filming only) -->

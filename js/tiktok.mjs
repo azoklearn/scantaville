@@ -7,8 +7,8 @@ const ALLOWED = new Set([
   '8ef74dcccefe8552742fa26186b28178bac5eced74c02735af0f1acba956ee41',
   'd5b5b994b4d7c58f9294de969d294ce5081b66fcfba0bcbc99be1a4ca0e93a17',
 ]);
-const STEPS = ['goal', 'payout', 'first', 'contact', 'done4you', 'potential', 'build'];
-const KICKER = { goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', build: 'Ton premier site' };
+const STEPS = ['goal', 'payout', 'first', 'contact', 'done4you', 'potential', 'city', 'scan', 'build'];
+const KICKER = { goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', city: 'Ta ville', scan: 'Scan de ta ville', build: 'Leur site' };
 const SITE_PRICE = 400;
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -31,6 +31,8 @@ function show(name) {
   $('.quizcard').scrollTop = 0;
   if (name === 'potential') potential();
   if (name === 'build') build();
+  if (name === 'scan') fakeScan();
+  if (name === 'city') setTimeout(() => $('#tt-city input').focus(), 300);
 }
 const next = () => show(STEPS[STEPS.indexOf(cur) + 1]);
 
@@ -95,11 +97,36 @@ function coins(n) {
   for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.style.left = (4 + Math.random() * 92) + '%'; c.style.animationDelay = (Math.random() * .9) + 's'; c.style.width = c.style.height = (12 + Math.random() * 12) + 'px'; box.append(c); }
 }
 
+// ───────────────────────── city: typed, never really scanned (filming only) ─────────────────────────
+let city = '';
+$('#tt-city').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = e.target.elements.city.value.trim(); if (!v) return;
+  city = v.charAt(0).toUpperCase() + v.slice(1); sound.unlock(); next();
+});
+function fakeScan() {
+  const n = $('#scan-n'), target = 80 + Math.floor(Math.random() * 260); // a plausible count for a town
+  $('#scan-h').textContent = `Scan de ${city} en cours…`; $('#scan-sub').textContent = 'commerces sans site trouvés'; $('#scan-go').hidden = true;
+  $('.tt-radar').classList.remove('done');
+  const t0 = performance.now(), dur = 4200;
+  const tick = (now) => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    n.textContent = fr(target * e);
+    if (Math.random() < .35) sound.tick();
+    if (k < 1) return raf(tick);
+    $('#scan-h').textContent = `${city} : c’est fait.`;
+    $('#scan-sub').textContent = `commerces sans site web trouvés à ${city}`;
+    $('.tt-radar').classList.add('done'); sound.landed(); buzz([12, 40, 20]);
+    $('#scan-go').hidden = false;
+  };
+  raf(tick);
+}
+
 // ───────────────────────── a site being built (abstract blocks only) ─────────────────────────
 const BUILD = ['Analyse du commerce', 'Choix des couleurs', 'Mise en page', 'Textes et horaires', 'Photos', 'Bouton d’appel', 'Mise en ligne'];
 function build() {
   const list = $('#build-steps'), pct = $('#build-pct'), canvas = $('.tt-canvas');
-  $('#build-h').textContent = 'Création du site en cours…'; $('#build-again').hidden = true;
+  $('#build-h').textContent = 'Création de leur site en cours…'; $('#build-again').hidden = true;
   list.replaceChildren(...BUILD.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
   canvas.classList.remove('done'); $$('.tt-blk', canvas).forEach((b) => b.classList.remove('on'));
   const blocks = $$('.tt-blk', canvas), url = $('#build-url'), letters = 'www.ton-premier-client.fr';
@@ -120,7 +147,7 @@ function build() {
   };
   raf(tick);
 }
-$('#build-again').addEventListener('click', () => { $$('.picked').forEach((b) => b.classList.remove('picked')); show('goal'); });
+$('#build-again').addEventListener('click', () => { $$('.picked').forEach((b) => b.classList.remove('picked')); $('#tt-city').reset(); show('goal'); });
 
 // ───────────────────────── access ─────────────────────────
 async function gate(user) {

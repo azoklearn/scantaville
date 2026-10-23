@@ -36,3 +36,22 @@ body.tt-page { background: #fff; overflow: auto; }
 .tt-pct b { display: block; margin-top: 14px; font: 900 44px/1 var(--display); letter-spacing: -.04em; color: var(--blue); font-variant-numeric: tabular-nums; }
 .tt-steps { margin-top: 14px; }
 @media (prefers-reduced-motion: reduce) { .tt-scan { animation: none; } }
+
+.tt-city { display: grid; gap: 12px; margin-top: 10px; }
+.tt-city input { height: 60px; padding: 0 18px; border: 1.5px solid var(--line-2); border-radius: 16px; font: 600 19px var(--body); color: var(--ink); outline: 0; }
+.tt-city input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(29,91,255,.12); }
+.tt-city .tt-next { margin-top: 0; }
+.tt-cityscan { text-align: center; }
+.tt-radar { position: relative; width: min(78vw, 300px); aspect-ratio: 1; margin: 22px auto 10px; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle, rgba(29,91,255,.08) 0 30%, rgba(29,91,255,.14) 30% 31%, transparent 31% 60%, rgba(29,91,255,.14) 60% 61%, transparent 61%), var(--bg-2); border: 1.5px solid var(--blue-100); }
+.tt-radar::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, rgba(29,91,255,.45), transparent 25%); animation: sweep 1.8s linear infinite; }
+.tt-radar.done::before { animation: none; opacity: 0; transition: opacity .4s; }
+.tt-radar i { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; border: 1.5px solid rgba(29,91,255,.6); animation: ping 2.4s ease-out infinite; }
+.tt-radar i:nth-child(2) { animation-delay: .8s; } .tt-radar i:nth-child(3) { animation-delay: 1.6s; }
+.tt-radar span { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 12px var(--blue); animation: blink 2.2s ease-in-out infinite; }
+.tt-radar span:nth-of-type(1) { left: 28%; top: 30%; } .tt-radar span:nth-of-type(2) { left: 66%; top: 24%; animation-delay: .5s; }
+.tt-radar span:nth-of-type(3) { left: 58%; top: 68%; animation-delay: 1s; } .tt-radar span:nth-of-type(4) { left: 22%; top: 62%; animation-delay: 1.5s; }
+.tt-radar span:nth-of-type(5) { left: 78%; top: 52%; animation-delay: .8s; }
+@keyframes sweep { to { transform: rotate(360deg); } }
+.tt-count b { display: block; font: 900 clamp(64px, 18vw, 110px)/1 var(--display); letter-spacing: -.05em; color: var(--blue); font-variant-numeric: tabular-nums; }
+.tt-count span { display: block; margin-top: 6px; font-size: 16px; font-weight: 600; color: var(--ink-2); }
