@@ -9,6 +9,7 @@ import { BRAND, applyBrand } from './brand.mjs';
 import { initDocs, openDocs } from './docs-ui.mjs';
 import * as supa from './supa.mjs';
 import { syncCoach, pushSoon as pushCoachSoon } from './coach.mjs';
+import { FUNNEL, ANALYSIS_QUESTIONS, ANALYSIS_FACTS } from './funnel.mjs';
 import { shopPhoto, paintPhoto } from './photos.mjs';
 import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
 
@@ -418,18 +419,16 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverl
 // contacts" ratio as elsewhere (CONTACTS_PER_SALE) and 400 EUR per site; both are shown, never hidden.
 const SITE_PRICE = 400, CONTACTS_PER_SALE = 2, MIN_PER_CONTACT = 10, MIN_PER_SITE = 120;
 const quiz = { profile: '', goal: 0, hours: 0, skill: '', social: '', done: false, ready: false };
-const STEPS = ['goal', 'profile', 'hours', 'skill', 'social', 'result']; // the money question opens the quiz; the city comes after payment
-const REACT = {
-  profile: { student: 'Parfait : les commerces autour du campus sont souvent les premiers à dire oui.', job: 'Le soir et le week-end suffisent pour commencer. On calibre le plan là-dessus.', free: 'Tu as déjà le statut : il ne te manque que les clients. On va les trouver.', none: 'Aucun diplôme, aucun capital : juste des commerces à contacter. On démarre.' },
-  hours: { 2: '2 h, c’est un site par mois. Petit, mais c’est un début.', 5: '5 h par semaine, ça suffit pour plusieurs sites par mois.', 10: '10 h par semaine : tu peux en faire un vrai revenu.', 20: '20 h et plus : tu es en mode agence.' },
-  skill: { no: 'Aucun souci : ScanTaVille génère le site en 1 seconde, tu n’as rien à coder.', tools: 'Tu pars avec de l’avance : la maquette est prête, tu la peaufines avec tes outils.', yes: 'Tu vends d’abord, tu codes ensuite. La maquette sert à décrocher le oui.' },
-  social: { easy: 'Le script « en boutique » est fait pour toi : 6 lignes, et tu montres le site.', ok: 'Tu auras le script mot pour mot, et les réponses aux objections.', shy: 'On commence par les DM Insta et les e-mails : tout est écrit, tu n’as qu’à envoyer.' },
-};
+const FLOW = FUNNEL.map((f) => f.id);
+const DEF = Object.fromEntries(FUNNEL.map((f) => [f.id, f]));
+const fstate = { hist: [], answers: {}, cur: '' };
 /** shows one step: progress bar, word-by-word question, optional reaction to the previous answer */
 function showStep(name, reaction) {
-  const i = name === 'analyze' ? STEPS.length - 1.5 : name === 'city' ? STEPS.length - 1 : STEPS.indexOf(name);
-  $('#quiz-bar').style.width = Math.round(((i + 1) / STEPS.length) * 100) + '%';
-  $('#quiz-kicker').textContent = name === 'result' ? 'Ton plan' : name === 'analyze' ? 'Analyse' : name === 'city' ? 'Ta ville' : `Étape ${i + 1} sur ${STEPS.length - 1}`;
+  const i = FLOW.indexOf(name);
+  $('#quiz-bar').style.width = (i < 0 ? 100 : Math.round(((i + 1) / FLOW.length) * 100)) + '%';
+  $('#quiz-kicker').textContent = name === 'city' ? 'Ta ville' : name === 'result' ? 'Ton plan' : DEF[name]?.kicker || '';
+  $('#quiz-back').hidden = !(i > 0 && fstate.hist.length && name !== 'analyze');
+  fstate.cur = name;
   const r = $('#quiz-react'); r.hidden = !reaction; if (reaction) { r.textContent = reaction; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = ''; }
   $$('.quiz-step').forEach((sec) => { sec.hidden = sec.dataset.step !== name; if (!sec.hidden) { sec.style.animation = 'none'; void sec.offsetWidth; sec.style.animation = ''; } });
   const q = $(`.quiz-step[data-step="${name}"] .qq`);
@@ -442,9 +441,11 @@ function showStep(name, reaction) {
 function startQuiz() {
   if (supa.enabled && store.planLevel() > 0 && store.getMyPlan()) { quiz.ready = true; quiz.goal = store.getMyPlan().goal; showStep('city'); openOverlay('#quiz'); return; } // subscriber: straight to the city
   quiz.done = false; quiz.ready = false; quizCalc = null;
-  $$('#quiz .quiz-opts button').forEach((b) => b.classList.remove('picked'));
+  fstate.hist = []; fstate.answers = {};
+  $$('#quiz .picked').forEach((b) => b.classList.remove('picked'));
+  $$('#quiz .f-other-box').forEach((b) => { b.hidden = true; b.querySelector('input').value = ''; });
   $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
-  showStep('goal'); openOverlay('#quiz');
+  go(FLOW[0], false); openOverlay('#quiz');
   track('quiz_start');
 }
 /** end of the quiz: why subscribing pays for itself. Real numbers of the scanned city, real prices, no fake scarcity. */
@@ -480,45 +481,53 @@ function renderWhy(sites, contacts) {
 }
 /** 2.5 s of suspense once the city is chosen: the profile is analysed, then the city scan starts */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
-const START_REACT = { asap: 'Parfait : on lance ton plan tout de suite.', now: 'Parfait : ton plan démarre dès cette semaine.', month: 'Ok, on cale ton plan sur le mois qui vient.', later: 'Aucun souci : regarde ta ville, tu décides après.' };
-/** ~7 s: the profile is analysed, with a pause at a random point for one question (the bar waits for the answer) */
+const START_REACT = { asap: 'Parfait : on lance ton plan tout de suite.', now: 'Parfait : ton plan démarre dès cette semaine.', month: 'Ok, on cale ton plan sur le mois qui vient.', later: 'Aucun souci : regarde ta ville, tu décides après.',
+  door: 'En boutique, la maquette sur ton téléphone fait tout le travail.', dm: 'Les scripts DM sont prêts : tu copies, tu envoies.', phone: 'Le script d’appel est fourni, objections comprises.', unsure: 'On te montrera les trois, tu choisiras.' };
+/** ~10 s: the answers are analysed; the bar stops twice at random points for a question and waits for the answer */
 function analyze(city, done) {
   showStep('analyze');
-  const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
-  const lines = [`Objectif : ${fr(quiz.goal)} € par mois`, `${sites} site${sites > 1 ? 's' : ''} à vendre chaque mois`, `Profil : ${personaOf(quiz)[1]}, ${quiz.hours || 5} h par semaine`, city ? `Scan de ${city.name} en préparation` : 'Ton plan sur mesure'];
-  const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52, q = $('#an-q');
+  const lines = ['Analyse de tes réponses', 'Identification de tes futurs clients', 'Croisement avec ton temps et ton objectif', 'Assemblage de ta projection'];
+  const list = $('#an-list'), ring = $('#an-ring'), pct = $('#an-pct'), C = 2 * Math.PI * 52, q = $('#an-q'), fact = $('#an-fact');
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
   list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
-  q.hidden = true; $$('#an-opts button').forEach((b) => b.classList.remove('picked')); list.hidden = false;
+  q.hidden = true; list.hidden = false;
+  let f = 0; fact.textContent = ANALYSIS_FACTS[0];
+  const factT = setInterval(() => { f = (f + 1) % ANALYSIS_FACTS.length; fact.textContent = ANALYSIS_FACTS[f]; fact.classList.remove('in'); void fact.offsetWidth; fact.classList.add('in'); }, 2600);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const PAUSE = 0.38 + Math.random() * 0.4, A = reduce ? 200 : 3600, B = reduce ? 200 : 3200; // stops at a random point (38-78 %) for the question
-  let shown = -1, t0 = performance.now(), from = 0, to = PAUSE, dur = A, asked = false;
+  const stops = [0.2 + Math.random() * 0.2, 0.55 + Math.random() * 0.25]; // random points for the two questions
+  const legs = [[0, stops[0]], [stops[0], stops[1]], [stops[1], 1]];
+  let leg = 0, shown = -1, t0 = performance.now();
+  const dur = () => (reduce ? 200 : leg === 0 ? 2800 : leg === 1 ? 3000 : 2600);
   const draw = (v) => {
     ring.style.strokeDashoffset = C * (1 - v); pct.textContent = Math.round(v * 100) + ' %';
     const n = Math.min(lines.length - 1, Math.floor(v * lines.length * 0.999));
     while (shown < n) { shown++; list.children[shown].classList.add('on'); sound.tick(); buzz(8); }
   };
+  const ask = (Q, then) => {
+    list.hidden = true; q.hidden = false; q.style.animation = 'none'; void q.offsetWidth; q.style.animation = '';
+    pct.classList.add('paused'); buzz(15);
+    $('#an-q-h').textContent = Q.q;
+    $('#an-opts').replaceChildren(...Q.opts.map(([v, ic, label]) => el('button', { type: 'button', 'data-v': v }, el('i', { text: ic }), label)));
+    $('#an-opts').onclick = (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      fstate.answers[Q.id] = b.dataset.v; if (Q.id === 'start') quiz.start = b.dataset.v;
+      if (Q.id === 'how') quiz.social = { door: 'easy', dm: 'shy', phone: 'ok' }[b.dataset.v] || quiz.social;
+      track('quiz_answer', { q: Q.id, a: b.dataset.v });
+      b.classList.add('picked'); burst(b, e); sound.flip(); buzz(14); $('#an-opts').onclick = null;
+      setTimeout(() => {
+        q.hidden = true; list.hidden = false; pct.classList.remove('paused');
+        const r = $('#quiz-react'); r.hidden = false; r.textContent = START_REACT[b.dataset.v] || ''; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = '';
+        then();
+      }, 450);
+    };
+  };
   const tick = (now) => {
-    const k = Math.min(1, (now - t0) / dur), v = from + (to - from) * (1 - Math.pow(1 - k, 2));
+    const [from, to] = legs[leg], k = Math.min(1, (now - t0) / dur()), v = from + (to - from) * (1 - Math.pow(1 - k, 2));
     draw(v);
     if (k < 1) return requestAnimationFrame(tick);
-    if (!asked) { // stop here and ask
-      asked = true; list.hidden = true; q.hidden = false; q.style.animation = 'none'; void q.offsetWidth; q.style.animation = '';
-      pct.classList.add('paused'); buzz(15);
-      $('#an-opts').onclick = (e) => {
-        const b = e.target.closest('button'); if (!b) return;
-        quiz.start = b.dataset.v; track('quiz_start_when', { when: quiz.start });
-        $$('#an-opts button').forEach((x) => x.classList.toggle('picked', x === b)); burst(b, e); sound.flip(); buzz(14);
-        $('#an-opts').onclick = null;
-        setTimeout(() => {
-          q.hidden = true; list.hidden = false; pct.classList.remove('paused');
-          const r = $('#quiz-react'); r.hidden = false; r.textContent = START_REACT[quiz.start]; r.style.animation = 'none'; void r.offsetWidth; r.style.animation = '';
-          from = PAUSE; to = 1; dur = B; t0 = performance.now(); requestAnimationFrame(tick);
-        }, 450);
-      };
-      return;
-    }
-    list.children[lines.length - 1].classList.add('on'); buzz([12, 40, 20]); setTimeout(done, reduce ? 0 : 500);
+    if (leg < 2) return ask(ANALYSIS_QUESTIONS[leg], () => { leg++; t0 = performance.now(); requestAnimationFrame(tick); });
+    clearInterval(factT); list.children[lines.length - 1].classList.add('on'); buzz([12, 40, 20]);
+    setTimeout(() => { $('#quiz-react').hidden = true; done(); }, reduce ? 0 : 600);
   };
   requestAnimationFrame(tick);
 }
@@ -537,7 +546,7 @@ function personaOf(q) {
   return PERSONAS.strat;
 }
 let quizCalc = null, countRaf = 0;
-function quizResult() {
+function quizResult(show = true) {
   const d = state.data, total = d?.stats.leads || 0, city = d?.name || '';
   $('#quiz-euros').dataset.v = 0; $('#quiz-euros').textContent = '0 €';
   $('#quiz-title').replaceChildren(...(d ? [el('b', { class: 'accent', text: fr(total) }), ` commerces sans site web à ${city}.`] : ['Ton plan est ', el('b', { class: 'accent', text: 'prêt' }), '.']));
@@ -570,6 +579,7 @@ function quizResult() {
   const [ic, pname, ptag] = personaOf(quiz);
   $('#persona-ic').textContent = ic; $('#persona-name').textContent = pname; $('#persona-tag').textContent = ptag;
   track('quiz', { goal: quiz.goal, hours: quiz.hours, persona: pname });
+  if (!show) return;
   showStep('result');
   const step = $('.quiz-step[data-step="result"]');
   for (const n of $$('.quiz-plan li, .quiz-close, .cta', step)) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
@@ -601,6 +611,9 @@ function drawGauge() {
   $('#gauge-fill').style.width = pct + '%';
   $('#gauge-thumb').style.left = pct + '%';
   $('.gauge').style.setProperty('--heat', String(pct / 100));
+  const sites = Math.max(1, Math.ceil(v / SITE_PRICE)), tag = v <= 1500 ? 'réaliste' : v <= 5000 ? 'accessible' : 'ambitieux';
+  const t = $('#goal-tag'); if (t.textContent !== tag) { t.textContent = tag; t.dataset.tag = tag; }
+  $('#goal-why').textContent = `À ${fr(SITE_PRICE)} € le site, ça fait ${sites} site${sites > 1 ? 's' : ''} à vendre par mois.` + (v > 5000 ? ' Atteignable en visant des sites plus complets, vendus plus cher.' : '');
   const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); buzz(6); }
   quiz.goal = v;
 }
@@ -619,20 +632,147 @@ function drawGauge() {
   track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
 }
 $('#goal-gauge').addEventListener('input', drawGauge);
-$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); showStep('profile', `${fr(quiz.goal)} € par mois, c’est ${Math.max(1, Math.ceil(quiz.goal / SITE_PRICE))} site${quiz.goal > SITE_PRICE ? 's' : ''} à vendre. On construit ton plan.`); });
+// ───────────────────────── Funnel engine ─────────────────────────
+/** what the rest of the app (plan, persona, Mon plan) reads, derived from the answers */
+function syncQuizFromAnswers() {
+  const A = fstate.answers;
+  quiz.profile = A.age || quiz.profile;
+  quiz.hours = Number(A.hours) || quiz.hours || 5;
+  quiz.skill = A.xp === 'never' ? 'no' : A.xp ? 'tools' : quiz.skill;
+  const lim = A.limits || [];
+  if (!A.how) quiz.social = lim.includes('door') ? 'shy' : lim.includes('none') ? 'easy' : lim.length ? 'ok' : quiz.social || 'ok';
+}
+function nextOf(id) { return FLOW[FLOW.indexOf(id) + 1]; }
+function go(id, push = true) {
+  const d = DEF[id];
+  if (!d) return finishFunnel();
+  const devSkip = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('nosignup'); // local tests only
+  if (d.type === 'email' && (!supa.enabled || state.user || devSkip)) return go(nextOf(id), push); // already has an account
+  if (push && fstate.cur && fstate.cur !== id && fstate.cur !== 'analyze') fstate.hist.push(fstate.cur);
+  showStep(id);
+  if (d.type === 'analyze') { syncQuizFromAnswers(); analyze(null, () => go(nextOf('analyze'))); }
+  else if (d.type === 'potential') renderPotential();
+  else if (d.type === 'beforeafter') loadBeforeAfter();
+  else if (d.type === 'plannow') renderPlanNow();
+  track('quiz_step', { step: id });
+}
+const next = () => go(nextOf(fstate.cur));
+$('#quiz-back').addEventListener('click', () => { const prev = fstate.hist.pop(); if (prev) showStep(prev); });
+$('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); fstate.answers.goal = quiz.goal; next(); });
 
-$$('.quiz-opts').forEach((box) => box.addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b || !box.dataset.key) return; // the analysis question has its own handler
-  const key = box.dataset.key, v = b.dataset.v;
-  burst(b, e); sound.unlock(); sound.flip(); buzz(14);
-  quiz[key] = key === 'hours' ? Number(v) : v;
-  $$('button', box).forEach((x) => x.classList.toggle('picked', x === b));
-  const next = STEPS[STEPS.indexOf(key) + 1];
-  setTimeout(() => {
-    if (next === 'result') { quiz.ready = true; analyze(null, () => quizResult()); return; } // last answer: analysis, then the plan
-    showStep(next, REACT[key]?.[v]);
-  }, 380);
-}));
+/** builds every generic screen of FUNNEL into the quiz */
+function renderFunnel() {
+  const box = $('#quiz-steps'), before = $('.quiz-step[data-step="city"]');
+  for (const d of FUNNEL) {
+    if (d.type === 'goal' || d.type === 'analyze') continue;
+    const sec = el('section', { class: `quiz-step f-step f-${d.type}`, 'data-step': d.id, hidden: '' });
+    if (d.q) sec.append(el('h2', { class: 'quiz-h qq', text: d.q }));
+    if (d.type === 'single' || d.type === 'multi') {
+      const multi = d.type === 'multi', opts = el('div', { class: 'quiz-opts f-opts' + (d.opts.some((o) => o[2]) ? ' f-rich' : '') });
+      const go_ = el('button', { class: 'cta f-go', type: 'button', disabled: multi ? '' : null, hidden: multi ? null : '', text: 'Coche au moins une réponse' });
+      const other = d.other ? el('div', { class: 'f-other-box', hidden: '' }, el('input', { type: 'text', maxlength: '140', placeholder: 'Écris ta réponse…', 'aria-label': 'Ta réponse' })) : null;
+      const refresh = () => { const n = $$('.picked', opts).length + (other && !other.hidden && other.querySelector('input').value.trim() ? 1 : 0); if (multi) { go_.disabled = !n; go_.textContent = n ? 'Continuer →' : 'Coche au moins une réponse'; } };
+      for (const [v, label, desc] of d.opts) {
+        opts.append(el('button', { type: 'button', class: 'f-opt', 'data-v': v, onclick: (e) => {
+          const b = e.currentTarget; burst(b, e); sound.unlock(); sound.flip(); buzz(14);
+          if (multi) { if (v === 'none') $$('.picked', opts).forEach((x) => x !== b && x.classList.remove('picked')); else $$('[data-v="none"]', opts).forEach((x) => x.classList.remove('picked')); b.classList.toggle('picked'); refresh(); return; }
+          $$('.picked', opts).forEach((x) => x.classList.remove('picked')); b.classList.add('picked');
+          fstate.answers[d.id] = v; track('quiz_answer', { q: d.id, a: v }); setTimeout(next, 380);
+        } }, el('b', { text: label }), desc ? el('small', { text: desc }) : null));
+      }
+      if (other) {
+        opts.append(el('button', { type: 'button', class: 'f-opt f-other', onclick: () => { other.hidden = !other.hidden; if (!multi) go_.hidden = other.hidden; if (!other.hidden) other.querySelector('input').focus(); refresh(); } },
+          el('b', { text: 'Ma réponse n’est pas dans la liste' }), el('small', { text: 'Écris-la toi-même' })));
+        other.querySelector('input').addEventListener('input', () => { if (!multi) { go_.disabled = !other.querySelector('input').value.trim(); go_.textContent = 'Continuer →'; } refresh(); });
+      }
+      go_.addEventListener('click', () => {
+        const picked = $$('.picked', opts).map((x) => x.dataset.v), txt = other && !other.hidden ? other.querySelector('input').value.trim() : '';
+        fstate.answers[d.id] = multi ? picked : (txt ? 'autre' : picked[0]);
+        if (txt) fstate.answers[d.id + '_text'] = txt.slice(0, 140);
+        track('quiz_answer', { q: d.id, a: multi ? picked.join(',') : fstate.answers[d.id] }); next();
+      });
+      sec.append(opts); if (other) sec.append(other); sec.append(go_);
+    } else if (d.type === 'info') {
+      if (d.big) sec.append(el('p', { class: 'f-big', text: d.big }));
+      sec.append(el('h2', { class: 'quiz-h f-title', text: d.title }));
+      if (d.body) sec.append(el('p', { class: 'f-body', text: d.body }));
+      if (d.points) sec.append(el('ol', { class: 'f-points' }, ...d.points.map(([t, p]) => el('li', {}, el('b', { text: t }), el('span', { text: p })))));
+      sec.append(el('button', { class: 'cta f-go', type: 'button', onclick: next }, `${d.cta} →`));
+    } else if (d.type === 'text') {
+      const ta = el('textarea', { rows: '3', maxlength: '300', placeholder: d.ph, 'aria-label': d.q });
+      sec.append(ta, el('button', { class: 'cta f-go', type: 'button', onclick: () => { if (ta.value.trim()) fstate.answers[d.id] = ta.value.trim().slice(0, 300); next(); } }, 'Valider →'),
+        el('button', { class: 'link f-skip', type: 'button', onclick: next, text: 'Passer cette étape' }));
+    } else if (d.type === 'potential') {
+      sec.append(el('h2', { class: 'quiz-h f-title', text: 'Ton potentiel' }), el('p', { class: 'f-range', id: 'f-range' }), el('p', { class: 'f-body', text: 'par mois' }),
+        el('div', { class: 'f-tiles', id: 'f-tiles' }), el('p', { class: 'fine', text: 'Scénario, pas une promesse : ça dépend de tes ventes.' }),
+        el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
+    } else if (d.type === 'email') {
+      const form = el('form', { class: 'f-email', id: 'f-email' },
+        el('input', { name: 'name', type: 'text', maxlength: '24', placeholder: 'Ton prénom', autocomplete: 'given-name', 'aria-label': 'Ton prénom' }),
+        el('input', { name: 'email', type: 'email', required: '', placeholder: 'ton@email.fr', autocomplete: 'email', 'aria-label': 'Ton e-mail' }),
+        el('input', { name: 'password', type: 'password', required: '', minlength: '6', placeholder: 'Mot de passe (6 caractères min.)', autocomplete: 'new-password', 'aria-label': 'Mot de passe' }),
+        el('p', { class: 'f-err', id: 'f-email-err', hidden: '' }),
+        el('button', { class: 'cta f-go', type: 'submit' }, 'Continuer →'),
+        el('p', { class: 'fine', text: 'Gratuit, pas d’e-mail à confirmer. Tes réponses restent dans ton navigateur.' }));
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = form.elements, b = form.querySelector('button'), err = $('#f-email-err'); b.disabled = true; err.hidden = true;
+        if (f.name.value.trim()) store.setAuthor(f.name.value.trim());
+        let { error } = await supa.signUp(f.email.value.trim(), f.password.value);
+        if (error && /existe/.test(error)) ({ error } = await supa.signIn(f.email.value.trim(), f.password.value));
+        b.disabled = false;
+        if (error) { err.textContent = error; err.hidden = false; return; }
+        f.password.value = ''; track('signup', { from: 'quiz' }); next();
+      });
+      sec.append(el('h2', { class: 'quiz-h f-title', text: 'Entre ton e-mail pour débloquer tes résultats.' }), form);
+    } else if (d.type === 'beforeafter') {
+      sec.append(el('h2', { class: 'quiz-h f-title', text: 'Avant, après.' }),
+        el('div', { class: 'f-ba' },
+          el('figure', {}, el('div', { class: 'f-ba-before' }, el('b', { text: 'Le Fournil d’Or' }), el('span', { text: 'Boulangerie · Tours' }), el('span', { text: '★ 4,6 · 12 rue Nationale' }), el('span', { class: 'f-nosite', text: 'Site web : aucun' })), el('figcaption', { text: 'Avant' })),
+          el('figure', {}, el('div', { class: 'f-ba-after' }, el('iframe', { title: 'Le site généré', id: 'f-ba-frame', tabindex: '-1' })), el('figcaption', { text: 'Une seconde plus tard' }))),
+        el('p', { class: 'f-body', text: 'Le commerce n’avait pas de site. ScanTaVille l’a généré en une seconde : c’est ce que tu montres au patron, et ce que tu lui vends.' }),
+        el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
+    } else if (d.type === 'plannow') {
+      sec.append(el('h2', { class: 'quiz-h f-title', id: 'f-now-h' }),
+        el('ol', { class: 'f-now' },
+          el('li', {}, el('b', { text: 'On trouve tes clients dans ta ville' }), el('span', { text: 'Chaque commerce sans site, avec adresse, téléphone et horaires.' })),
+          el('li', {}, el('b', { text: 'On génère leur site à ta place' }), el('span', { text: 'Une maquette à leur nom en une seconde, prête à montrer et à mettre en ligne.' })),
+          el('li', {}, el('b', { text: 'Tu suis le plan, tu encaisses' }), el('span', { text: 'Scripts, devis, facture et suivi jour après jour dans « Mon plan ».' }))),
+        el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
+    } else if (d.type === 'final') {
+      sec.append(el('h2', { class: 'quiz-h f-title', text: 'La seule chose qui te retient, c’est une méthode claire et une structure à appliquer.' }),
+        el('p', { class: 'f-body', text: 'Pas plus de motivation, pas plus de temps, pas plus de talent. Une méthode.' }),
+        el('button', { class: 'cta f-go', type: 'button', onclick: finishFunnel }, 'Voir les formules →'));
+    }
+    box.insertBefore(sec, before);
+  }
+}
+renderFunnel();
+
+function renderPotential() {
+  const g = quiz.goal || 1000, low = Math.round((g * 0.87) / 100) * 100, high = Math.round((g * 1.13) / 100) * 100, sites = Math.max(1, Math.ceil(g / SITE_PRICE));
+  $('#f-range').textContent = `${fr(low)} € à ${fr(high)} €`;
+  sound.landed();
+  $('#f-tiles').replaceChildren(...[[fr(sites), 'sites à vendre'], [`${fr(SITE_PRICE)} €`, 'par site'], [`${fr(g)} €`, 'ton objectif']].map(([b, t]) => el('div', {}, el('b', { text: b }), el('span', { text: t }))));
+}
+function loadBeforeAfter() {
+  const f = $('#f-ba-frame'); if (f.src) return;
+  f.src = '/demo.html#' + encodePayload({ n: 'Le Fournil d’Or', t: 'boulangerie', c: 'Tours', a: '12 rue Nationale, 37000 Tours', h: 'Tu-Sa 07:00-19:30; Su 07:00-13:00', w: 1 });
+}
+function renderPlanNow() {
+  const name = store.getAuthor();
+  $('#f-now-h').textContent = `${name ? name + ', v' : 'V'}oilà comment on t’amène à tes premiers revenus.`;
+}
+/** end of the quiz: subscribers pick their city, the others see the plans */
+function finishFunnel() {
+  syncQuizFromAnswers(); quiz.ready = true; quiz.done = true;
+  quizResult(false); // computes the plan (Mon plan, persona, paywall recap) without showing the old result screen
+  track('quiz_done', { goal: quiz.goal });
+  if (!supa.enabled || store.planLevel() > 0) { showStep('city'); return; }
+  $('#quiz').hidden = true;
+  if (!state.user) { state.afterAuth = 'paywall'; askAccount(); } else planPaywall();
+}
+
 /** a small burst of blue sparks from where the answer was tapped */
 function burst(btn, e) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
