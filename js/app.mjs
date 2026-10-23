@@ -755,7 +755,16 @@ function renderPotential() {
   sound.landed();
   $('#f-tiles').replaceChildren(...[[fr(sites), 'sites à vendre'], [`${fr(SITE_PRICE)} €`, 'par site'], [`${fr(g)} €`, 'ton objectif']].map(([b, t]) => el('div', {}, el('b', { text: b }), el('span', { text: t }))));
 }
+/** the generated site renders at phone width (390 px) and is scaled to fill its frame exactly, no white strip */
+function fitBeforeAfter() {
+  const f = $('#f-ba-frame'), box = f?.parentElement; if (!box || !box.clientWidth) return;
+  const k = box.clientWidth / 390, h = Math.round(Math.min(780 * k, 440));
+  f.style.transform = `scale(${k})`;
+  box.style.height = h + 'px'; $('.f-ba-before').style.height = (h + 12) + 'px';
+}
+addEventListener('resize', fitBeforeAfter);
 function loadBeforeAfter() {
+  requestAnimationFrame(fitBeforeAfter);
   const f = $('#f-ba-frame'); if (f.src) return;
   f.src = '/demo.html#' + encodePayload({ n: 'Le Fournil d’Or', t: 'boulangerie', c: 'Tours', a: '12 rue Nationale, 37000 Tours', h: 'Tu-Sa 07:00-19:30; Su 07:00-13:00', w: 1 });
 }

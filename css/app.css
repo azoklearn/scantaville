@@ -1122,7 +1122,7 @@ body[data-state="landing"] .overlay, body[data-state="landing"] #suggest { color
 .f-ba-before b { font: 800 18px/1.2 var(--display); } .f-ba-before span { font-size: 13px; color: var(--muted); }
 .f-nosite { margin-top: 8px; padding: 6px 10px; border-radius: 10px; background: #fde8e8; color: #c0262d !important; font-weight: 700; align-self: flex-start; }
 .f-ba-after { position: relative; height: 300px; overflow: hidden; border-radius: 20px; border: 6px solid var(--ink); background: #fff; }
-.f-ba-after iframe { width: 390px; height: 780px; border: 0; transform: scale(.38); transform-origin: 0 0; pointer-events: none; }
+.f-ba-after iframe { display: block; width: 390px; height: 780px; border: 0; transform-origin: 0 0; pointer-events: none; }
 
 .f-now { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; counter-reset: fn; }
 .f-now li { counter-increment: fn; display: grid; grid-template-columns: 44px 1fr; gap: 2px 12px; padding: 14px 16px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line); }
@@ -1142,3 +1142,6 @@ body[data-state="landing"] .overlay, body[data-state="landing"] #suggest { color
 #quiz .f-info .quiz-back, #quiz .f-potential .quiz-back { text-align: left; }
 #quiz .quiz-opts button.f-opt { font-size: clamp(17px, 4.6vw, 21px); padding: 14px 48px 14px 18px; }
 #quiz .quiz-back { width: 100%; text-align: left; }
+.f-ba { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.f-ba-after { min-width: 0; }
+.f-ba-after iframe { position: absolute; top: 0; left: 0; }
