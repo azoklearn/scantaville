@@ -1240,7 +1240,8 @@ function renderPaywall() {
       onclick: () => { if (off) return; pay.plan = p.id; renderPaywall(); },
     }, el('i', { class: 'pp-radio', 'aria-hidden': 'true' }),
       el('span', { class: 'pp-main' }, el('b', { text: p.name }), el('span', { class: 'pp-period', text: p.period + (p.popular ? ' · le plus choisi' : p === best ? ' · meilleur prix' : '') })),
-      el('span', { class: 'pp-right' }, el('span', { class: 'pp-price', text: priceLabel(p) }), el('span', { class: 'pp-month', text: p.months > 1 ? `soit ${perMonthLabel(p)} / mois` : 'par mois' })),
+      // the monthly price is the big number; what is actually charged is written under it
+      el('span', { class: 'pp-right' }, el('span', { class: 'pp-price' }, perMonthLabel(p), el('small', { text: ' / mois' })), el('span', { class: 'pp-month', text: p.months > 1 ? `${priceLabel(p)} ${p.cycle}` : 'sans engagement' })),
       save ? el('span', { class: 'pp-save', text: `−${save} %` }) : null);
   }));
   const times = Math.floor(SITE_PRICE / chosen.price);
