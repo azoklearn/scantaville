@@ -480,8 +480,8 @@ function renderWhy(sites, contacts) {
 }
 /** 2.5 s of suspense once the city is chosen: the profile is analysed, then the city scan starts */
 const buzz = (ms) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(ms); } catch { /* not supported */ } }; // phones only, after a real tap
-const START_REACT = { now: 'Parfait : ton plan démarre dès cette semaine.', month: 'Ok, on cale ton plan sur le mois qui vient.', later: 'Aucun souci : regarde ta ville, tu décides après.' };
-/** ~7 s: the profile is analysed, with a pause at 55 % for one question (the bar waits for the answer) */
+const START_REACT = { asap: 'Parfait : on lance ton plan tout de suite.', now: 'Parfait : ton plan démarre dès cette semaine.', month: 'Ok, on cale ton plan sur le mois qui vient.', later: 'Aucun souci : regarde ta ville, tu décides après.' };
+/** ~7 s: the profile is analysed, with a pause at a random point for one question (the bar waits for the answer) */
 function analyze(city, done) {
   showStep('analyze');
   const sites = Math.max(1, Math.ceil(quiz.goal / SITE_PRICE));
@@ -491,7 +491,7 @@ function analyze(city, done) {
   list.replaceChildren(...lines.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
   q.hidden = true; $$('#an-opts button').forEach((b) => b.classList.remove('picked')); list.hidden = false;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const PAUSE = 0.55, A = reduce ? 200 : 3600, B = reduce ? 200 : 3200; // ms before / after the question
+  const PAUSE = 0.38 + Math.random() * 0.4, A = reduce ? 200 : 3600, B = reduce ? 200 : 3200; // stops at a random point (38-78 %) for the question
   let shown = -1, t0 = performance.now(), from = 0, to = PAUSE, dur = A, asked = false;
   const draw = (v) => {
     ring.style.strokeDashoffset = C * (1 - v); pct.textContent = Math.round(v * 100) + ' %';
