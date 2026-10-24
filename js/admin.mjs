@@ -3,6 +3,7 @@
 // Uses supabase/admin_v2.sql when it has been run; falls back to the older admin_overview / admin_users otherwise.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.mjs';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { FUNNEL } from './funnel.mjs';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -22,6 +23,10 @@ const svg = (tag, attrs = {}) => { const n = document.createElementNS(SVG, tag);
 const PLAN = { free: 'Découverte', m1: 'Essentiel', m3: 'Pro', y1: 'Illimité' };
 const PRICE = { m1: 19.9, m3: 29.9 / 3, y1: 79 / 12 }; // per month
 const STATUS = { todo: 'À contacter', contacted: 'Contacté', meeting: 'RDV', won: 'Signé', lost: 'Non' };
+// readable name of each quiz screen
+const STEP_LABEL = Object.fromEntries(FUNNEL.map((f) => [f.id, f.kicker || f.id]));
+Object.assign(STEP_LABEL, { goal: 'Objectif (jauge)', analyze: 'Analyse', potential: 'Potentiel', email: 'Compte (e-mail)', beforeafter: 'Avant / après', now: 'Plan proposé', final: 'Méthode → formules', paywall: 'Écran des formules', checkout: 'Clic paiement', city: 'Choix de la ville' });
+const stepName = (s) => STEP_LABEL[s] || s || '—';
 const PAY = { applied: 'Appliqué', pending: 'En attente', unmatched: 'Sans e-mail', ignored: 'Ignoré', error: 'Erreur', received: 'Reçu' };
 const fr = (n, d = 0) => Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d });
 const eur = (n) => fr(n, n % 1 ? 2 : 0) + ' €';
@@ -173,6 +178,26 @@ function drawChart(series) {
   box.replaceChildren(s, tip);
 }
 
+// ───────────────────────── quiz funnel ─────────────────────────
+let fdays = 7;
+async function loadFunnel() {
+  let d;
+  if (demo) d = { sessions: 120, steps: [['age', 0, 120], ['proof', 1, 104], ['xp', 2, 97], ['goal', 8, 80], ['analyze', 9, 74], ['potential', 10, 71], ['email', 15, 52], ['payout', 17, 40], ['final', 28, 31], ['paywall', 100, 30], ['checkout', 110, 6]].map(([step, idx, n]) => ({ step, idx, n })) };
+  else { try { d = await rpc('admin_funnel', { p_days: fdays }); } catch { $('#funnel-sum').textContent = 'Lance supabase/funnel.sql dans Supabase pour suivre le questionnaire.'; $('#qfunnel').replaceChildren(); return; } }
+  const steps = (d.steps || []).sort((a, b) => a.idx - b.idx), top = Math.max(1, steps[0]?.n || d.sessions || 1);
+  const done = steps.find((x) => x.step === 'checkout')?.n || 0;
+  $('#funnel-sum').textContent = d.sessions ? `${fr(d.sessions)} questionnaires commencés · ${fr(done)} clics vers le paiement (${fr((done / top) * 100, 1)} %)` : 'Aucun questionnaire sur la période.';
+  $('#qfunnel').replaceChildren(...steps.map((x, i) => {
+    const prev = i ? steps[i - 1].n : x.n, drop = prev ? Math.round(((prev - x.n) / prev) * 100) : 0;
+    return el('div', { class: 'qf-row', title: `${x.n} sur ${top}` },
+      el('span', { class: 'qf-name', text: stepName(x.step) }),
+      el('div', { class: 'qf-bar' }, el('i', { style: `width:${Math.max(1, (x.n / top) * 100)}%` })),
+      el('span', { class: 'qf-n', text: fr(x.n) }),
+      el('span', { class: 'qf-drop' + (drop >= 20 ? ' bad' : ''), text: i && drop > 0 ? `−${drop} %` : '' }));
+  }));
+}
+$$('#frange button').forEach((b) => b.addEventListener('click', () => { fdays = Number(b.dataset.d); $$('#frange button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); loadFunnel(); }));
+
 // ───────────────────────── users ─────────────────────────
 async function loadUsers() {
   const q = $('#q').value.trim();
@@ -196,7 +221,7 @@ function renderUsers() {
       el('td', {}, planBadge(u)), el('td', { text: u.plan === 'free' ? '—' : u.plan_until ? day(u.plan_until) : 'sans fin' }),
       el('td', { text: day(u.created_at) }), el('td', { text: ago(u.last_sign_in_at) }),
       el('td', { class: 'r', text: fr(u.contacted) }), el('td', { class: 'r', text: fr(u.won) }), el('td', { class: 'r', text: u.sites != null ? fr(u.sites) : '—' }),
-      el('td', { class: 'r', text: u.goal ? eur(Number(u.goal)) : '—' }));
+      el('td', { class: 'r', text: u.goal ? eur(Number(u.goal)) : '—' }), el('td', {}, u.last_step ? el('span', { class: 'badge', text: stepName(u.last_step) }) : '—'));
     if (st.v2 || demo) tr.addEventListener('click', () => openUser(u));
     return tr;
   }));
@@ -281,7 +306,7 @@ let qt = 0;
 $('#q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(loadUsers, 250); });
 $('#csv').addEventListener('click', () => {
   const esc = (v) => { const s = v == null ? '' : String(v); return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  const cols = ['email', 'plan', 'plan_until', 'created_at', 'last_sign_in_at', 'contacted', 'won', 'sites', 'goal'];
+  const cols = ['email', 'plan', 'plan_until', 'created_at', 'last_sign_in_at', 'contacted', 'won', 'sites', 'goal', 'last_step'];
   const lines = [cols.join(';'), ...st.users.map((u) => cols.map((c) => esc(u[c])).join(';'))];
   const a = el('a', { href: URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })), download: 'scantaville-utilisateurs.csv' }); a.click();
 });
@@ -295,7 +320,7 @@ $('#grant').addEventListener('submit', async (e) => {
 async function refresh() {
   $('#refresh').classList.add('spin'); setTimeout(() => $('#refresh').classList.remove('spin'), 450);
   await loadDashboard().catch(() => null); renderOverview();
-  await Promise.all([loadUsers(), payments(), waitlist()]);
+  await Promise.all([loadUsers(), payments(), waitlist(), loadFunnel()]);
 }
 $('#refresh').addEventListener('click', refresh);
 

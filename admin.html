@@ -55,6 +55,12 @@
       </article>
     </div>
 
+    <article class="card">
+      <div class="card-h"><h2>Parcours du questionnaire</h2><div class="seg" id="frange"><button type="button" data-d="1">24 h</button><button type="button" data-d="7" aria-pressed="true">7 j</button><button type="button" data-d="30">30 j</button></div></div>
+      <p class="muted small" id="funnel-sum"></p>
+      <div id="qfunnel" class="qfunnel"></div>
+    </article>
+
     <div class="grid g-3">
       <article class="card"><div class="card-h"><h2>Entonnoir</h2></div><div id="funnel" class="funnel"></div></article>
       <article class="card"><div class="card-h"><h2>Prospection des membres</h2><span class="tag" id="pipe-7d"></span></div><div id="pipe" class="hbars"></div></article>
@@ -79,7 +85,7 @@
       </div>
       <button id="csv" class="ghost" type="button">Exporter CSV</button>
     </div>
-    <div class="card flush"><div class="scroll"><table class="tbl"><thead><tr><th>Utilisateur</th><th>Formule</th><th>Jusqu'au</th><th>Inscrit</th><th>Vu</th><th class="r">Contactés</th><th class="r">Signés</th><th class="r">Sites</th><th class="r">Objectif</th></tr></thead><tbody id="users"></tbody></table></div><p id="users-n" class="muted small pad"></p></div>
+    <div class="card flush"><div class="scroll"><table class="tbl"><thead><tr><th>Utilisateur</th><th>Formule</th><th>Jusqu'au</th><th>Inscrit</th><th>Vu</th><th class="r">Contactés</th><th class="r">Signés</th><th class="r">Sites</th><th class="r">Objectif</th><th>Étape atteinte</th></tr></thead><tbody id="users"></tbody></table></div><p id="users-n" class="muted small pad"></p></div>
   </section>
 
   <!-- ───────── Payments ───────── -->

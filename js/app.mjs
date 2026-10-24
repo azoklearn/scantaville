@@ -442,6 +442,7 @@ function startQuiz() {
   if (supa.enabled && store.planLevel() > 0 && store.getMyPlan()) { quiz.ready = true; quiz.goal = store.getMyPlan().goal; showStep('city'); openOverlay('#quiz'); return; } // subscriber: straight to the city
   quiz.done = false; quiz.ready = false; quizCalc = null;
   fstate.hist = []; fstate.answers = {};
+  fstate.session = (crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 36); // one id per quiz run
   $$('#quiz .picked').forEach((b) => b.classList.remove('picked'));
   $$('#quiz .f-other-box').forEach((b) => { b.hidden = true; b.querySelector('input').value = ''; });
   $('#goal-gauge').value = 1000; lastGaugeStep = -1; drawGauge();
@@ -654,11 +655,20 @@ function go(id, push = true) {
   else if (d.type === 'potential') renderPotential();
   else if (d.type === 'plannow') renderPlanNow();
   track('quiz_step', { step: id });
+  logFunnel(id);
 }
 const next = () => go(nextOf(fstate.cur));
 $('#quiz-back').addEventListener('click', () => { const prev = fstate.hist.pop(); if (prev) showStep(prev); });
 $('#goal-next').addEventListener('click', () => { quiz.goal = Number($('#goal-gauge').value); fstate.answers.goal = quiz.goal; next(); });
 
+/** admin "jusqu'où ils vont": every screen reached, once per quiz run */
+function logFunnel(step) {
+  if (!fstate.session) return;
+  fstate.logged ??= new Set();
+  const key = fstate.session + step; if (fstate.logged.has(key)) return; fstate.logged.add(key);
+  const i = FLOW.indexOf(step);
+  supa.logStep(fstate.session, step, i >= 0 ? i : { paywall: 100, checkout: 110, city: 120 }[step] ?? 90);
+}
 /** builds every generic screen of FUNNEL into the quiz */
 function renderFunnel() {
   const box = $('#quiz-steps'), before = $('.quiz-step[data-step="city"]');
@@ -763,7 +773,7 @@ function finishFunnel() {
   syncQuizFromAnswers(); quiz.ready = true; quiz.done = true;
   quizResult(false); // computes the plan (Mon plan, persona, paywall recap) without showing the old result screen
   track('quiz_done', { goal: quiz.goal });
-  if (!supa.enabled || store.planLevel() > 0) { showStep('city'); return; }
+  if (!supa.enabled || store.planLevel() > 0) { showStep('city'); logFunnel('city'); return; }
   $('#quiz').hidden = true;
   if (!state.user) { state.afterAuth = 'paywall'; askAccount(); } else planPaywall();
 }
@@ -1203,6 +1213,7 @@ function openPaywall(title, { feature, minLevel, planId } = {}) {
   pay.plan = wanted.level >= pay.minLevel ? wanted.id : planForLevel(pay.minLevel).id;
   $('#pay-title').textContent = title || 'Choisis ta formule';
   track('paywall_open', { need: pay.minLevel });
+  logFunnel('paywall');
   renderPaywall();
   openOverlay('#paywall');
 }
@@ -1244,7 +1255,7 @@ $$('[data-open-paywall]').forEach((b) => b.addEventListener('click', () => openP
 $('#waitlist').addEventListener('submit', (e) => {
   e.preventDefault();
   const chosen = planById(pay.plan);
-  if (chosen.checkoutUrl) { track('checkout_click', { plan: chosen.id }); location.href = chosen.checkoutUrl; return; }
+  if (chosen.checkoutUrl) { track('checkout_click', { plan: chosen.id }); logFunnel('checkout'); setTimeout(() => { location.href = chosen.checkoutUrl; }, 150); return; }
   const email = e.target.querySelector('input').value;
   store.saveWaitlist(email, chosen.id);
   supa.joinWaitlist(email, chosen.id); // no-op until Supabase is configured

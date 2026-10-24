@@ -88,6 +88,7 @@ language plpgsql stable security definer set search_path = public, auth as $$
 declare
   has_sites boolean := to_regclass('public.sites') is not null;
   has_coach boolean := to_regclass('public.coach') is not null;
+  has_funnel boolean := to_regprocedure('public.funnel_last_step(uuid)') is not null;
   res json;
 begin
   if not public.is_admin() then raise exception 'forbidden'; end if;
@@ -99,7 +100,8 @@ begin
              (select count(*) from pipeline x where x.user_id = p.id and x.status <> 'todo') contacted,
              (select count(*) from pipeline x where x.user_id = p.id and x.status = 'won') won,
              %s sites,
-             %s goal
+             %s goal,
+             %s last_step
       from profiles p left join auth.users u on u.id = p.id
       where ($1 = '' or p.email ilike '%%' || $1 || '%%')
         and case $2 when 'paying' then p.plan <> 'free' and not p.is_admin and (p.plan_until is null or p.plan_until > now())
@@ -110,6 +112,7 @@ begin
       order by p.created_at desc limit %s) r $q$,
     case when has_sites then '(select count(*) from sites s where s.user_id = p.id and s.published)' else '0' end,
     case when has_coach then '(select (c.data->''plan''->>''goal'') from coach c where c.user_id = p.id)' else 'null' end,
+    case when has_funnel then 'public.funnel_last_step(p.id)' else 'null' end,
     least(greatest(p_limit, 1), 1000))
   into res using coalesce(p_search, ''), coalesce(p_filter, 'all');
   return res;

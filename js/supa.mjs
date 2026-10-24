@@ -180,3 +180,12 @@ export async function scanCity(id) {
     return d.ok ? d.count : null;
   } catch { return null; }
 }
+
+/** quiz analytics for the admin page: one row per screen reached (fire and forget, never blocks the quiz) */
+export async function logStep(session, step, idx) {
+  try {
+    const sb = await client(); if (!sb || !session) return;
+    const uid = await userId(sb);
+    await sb.from('funnel_events').insert({ session, step, idx, user_id: uid });
+  } catch { /* table not created yet, offline: ignore */ }
+}

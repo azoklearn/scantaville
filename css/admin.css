@@ -155,3 +155,14 @@ h2 { font: 700 15px/1.2 var(--display); letter-spacing: -.01em; }
 .skel { background: linear-gradient(90deg, var(--bg), #fff, var(--bg)); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 10px; height: 18px; }
 @keyframes sk { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+
+/* quiz funnel */
+.qfunnel { display: grid; gap: 6px; }
+.qf-row { display: grid; grid-template-columns: 170px 1fr 54px 54px; gap: 10px; align-items: center; font-size: 13px; }
+.qf-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.qf-bar { height: 18px; border-radius: 6px; background: var(--bg); overflow: hidden; }
+.qf-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--blue-2), var(--blue)); transition: width .8s var(--ease); }
+.qf-n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.qf-drop { text-align: right; font: 500 11px var(--mono); color: var(--muted); }
+.qf-drop.bad { color: var(--bad); }
+@media (max-width: 640px) { .qf-row { grid-template-columns: 110px 1fr 40px 46px; font-size: 12px; } }
