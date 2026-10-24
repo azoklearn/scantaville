@@ -31,14 +31,33 @@ let searchCtl = null;
 export async function searchCities(q, country = 'FR') {
   searchCtl?.abort(); searchCtl = new AbortController();
   if (country !== 'FR') return searchAbroad(q, country, searchCtl.signal);
-  const url = `${GEO}/communes?nom=${encodeURIComponent(q)}&fields=nom,code,codeDepartement,population,centre&boost=population&limit=7`;
+  const signal = searchCtl.signal;
+  // IGN Géoplateforme first (the official geocoder, gives INSEE + population), geo.api.gouv.fr as a fallback: either can be down
+  const ign = await searchIGN(q, signal);
+  if (ign?.length || signal.aborted) return ign || [];
   try {
-    const r = await fetch(url, { signal: searchCtl.signal });
+    const url = `${GEO}/communes?nom=${encodeURIComponent(q)}&fields=nom,code,codeDepartement,population,centre&boost=population&limit=7`;
+    const r = await fetch(url, { signal: AbortSignal.any ? AbortSignal.any([signal, AbortSignal.timeout(5000)]) : signal });
     if (!r.ok) return [];
     return (await r.json()).filter((c) => c.centre).map((c) => ({
       insee: c.code, name: c.nom, dept: c.codeDepartement, population: c.population || 0, center: c.centre.coordinates, country: 'FR',
     }));
   } catch { return []; }
+}
+
+async function searchIGN(q, signal) {
+  try {
+    const url = `https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&index=address&type=municipality&limit=10`;
+    const r = await fetch(url, { signal: AbortSignal.any ? AbortSignal.any([signal, AbortSignal.timeout(5000)]) : signal });
+    if (!r.ok) return null;
+    const seen = new Set();
+    return (await r.json()).features.map((f) => {
+      const p = f.properties || {};
+      if (!p.citycode || /Arrondissement/i.test(p.city || '') || seen.has(p.citycode) || !f.geometry?.coordinates) return null; // the commune, not its arrondissements
+      seen.add(p.citycode);
+      return { insee: p.citycode, name: p.city, dept: String(p.context || '').split(',')[0].trim(), population: p.population || 0, center: f.geometry.coordinates, country: 'FR' };
+    }).filter(Boolean).sort((a, b) => b.population - a.population).slice(0, 7);
+  } catch { return null; }
 }
 
 // We need the city's boundary RELATION (that is what Overpass turns into a search area), not a place node.
@@ -60,11 +79,14 @@ export async function cityByInsee(insee) {
   if (/^osm-\d{1,12}$/.test(insee)) return cityByRelation(insee.slice(4));
   if (!/^\d[\dAB]\d{3}$/.test(insee)) return null;
   try {
-    const r = await fetch(`${GEO}/communes/${insee}?fields=nom,code,codeDepartement,population,centre`);
-    if (!r.ok) return null;
-    const c = await r.json();
-    return c.centre ? { insee: c.code, name: c.nom, dept: c.codeDepartement, population: c.population || 0, center: c.centre.coordinates } : null;
-  } catch { return null; }
+    const r = await fetch(`${GEO}/communes/${insee}?fields=nom,code,codeDepartement,population,centre`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const c = await r.json();
+      if (c.centre) return { insee: c.code, name: c.nom, dept: c.codeDepartement, population: c.population || 0, center: c.centre.coordinates };
+    }
+  } catch { /* the commune API is down: fall back to the pre-scanned list */ }
+  const c = ((await loadIndex()).cities || []).find((x) => x.insee === insee);
+  return c?.center ? { insee: c.insee, name: c.name, dept: c.dept, population: c.population || 0, center: c.center } : null;
 }
 
 /** deep link to a foreign city (?v=osm-58274): one lookup on Nominatim, which its usage policy allows */
@@ -80,7 +102,7 @@ async function cityByRelation(id) {
 export async function communeContour(insee) {
   if (!/^\d[\dAB]\d{3}$/.test(insee)) return null; // contours come from the French commune API only
   try {
-    const r = await fetch(`${GEO}/communes/${insee}?fields=contour&format=geojson&geometry=contour`);
+    const r = await fetch(`${GEO}/communes/${insee}?fields=contour&format=geojson&geometry=contour`, { signal: AbortSignal.timeout(6000) });
     return r.ok ? await r.json() : null;
   } catch { return null; }
 }
