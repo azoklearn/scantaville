@@ -189,3 +189,10 @@ export async function logStep(session, step, idx) {
     await sb.from('funnel_events').insert({ session, step, idx, user_id: uid });
   } catch { /* table not created yet, offline: ignore */ }
 }
+
+/** after a payment: re-reads the signed-in user's plan from the database (the webhook may take a few seconds) */
+export async function refreshPlan() {
+  const sb = await client(); if (!sb) return null;
+  const uid = await userId(sb); if (!uid) return null;
+  return fetchPlan(sb, uid);
+}

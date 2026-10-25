@@ -295,6 +295,7 @@
       <button class="x" type="button" data-close aria-label="Fermer">×</button>
       <p class="kicker"><i class="dot"></i> Débloque ta ville</p>
       <h2 id="pay-title">Choisis ta formule</h2>
+      <div id="pay-choose">
       <div id="pay-recap" class="pay-recap" hidden></div>
       <p id="pay-sub" class="muted">Ton plan est prêt. Pour scanner ta ville, voir ses commerces et générer leurs sites, il faut une formule. Chacune comprend tout ce qu'offre la précédente.</p>
       <div id="pay-plans" class="pay-plans" role="radiogroup" aria-label="Formules"></div>
@@ -314,6 +315,20 @@
         <details><summary>Combien de temps avant de voir quelque chose ?</summary><p>Ta ville s'affiche dès que ton abonnement est actif, et tu peux générer ton premier site dans la minute. Les premières ventes, elles, dépendent du nombre de commerces que tu contactes : « Mon plan » te dit quoi faire, jour par jour.</p></details>
         <details><summary>Comment je suis sûr d'avoir des résultats ?</summary><p>Personne ne peut te garantir un revenu. Ce qu'on te garantit, ce sont les outils : les commerces sans site de ta ville, leur site prêt, les scripts et le suivi. Le reste dépend de toi.</p></details>
         <details><summary>Je peux arrêter quand je veux ?</summary><p>Oui. L'abonnement se résilie en deux clics depuis ton compte Whop, sans avoir à écrire à qui que ce soit.</p></details>
+      </div>
+      </div>
+      <!-- Whop checkout embedded in the page (js/app.mjs openCheckout) -->
+      <div id="pay-checkout" hidden>
+        <button id="pay-back" class="link pay-back" type="button">← Changer de formule</button>
+        <div class="pay-chosen" id="pay-chosen"></div>
+        <div id="whop-checkout" class="whop-box"><p class="muted pay-loading">Chargement du paiement sécurisé…</p></div>
+        <p class="fine">Paiement sécurisé, encaissé par Whop. Ton abonnement s'active sur ton compte ScanTaVille dès le paiement validé.</p>
+      </div>
+      <div id="pay-done" class="pay-done" hidden>
+        <div class="pay-check" aria-hidden="true">✓</div>
+        <h2 id="pay-done-h">Paiement reçu !</h2>
+        <p id="pay-done-p" class="muted">On active ta formule…</p>
+        <button id="pay-done-go" class="cta" type="button" hidden>Choisir ma ville →</button>
       </div>
     </article>
   </div>

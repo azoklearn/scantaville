@@ -667,7 +667,7 @@ function logFunnel(step) {
   fstate.logged ??= new Set();
   const key = fstate.session + step; if (fstate.logged.has(key)) return; fstate.logged.add(key);
   const i = FLOW.indexOf(step);
-  supa.logStep(fstate.session, step, i >= 0 ? i : { paywall: 100, checkout: 110, city: 120 }[step] ?? 90);
+  supa.logStep(fstate.session, step, i >= 0 ? i : { paywall: 100, checkout: 110, paid: 115, city: 120 }[step] ?? 90);
 }
 /** builds every generic screen of FUNNEL into the quiz */
 function renderFunnel() {
@@ -1212,6 +1212,7 @@ function openPaywall(title, { feature, minLevel, planId } = {}) {
   const wanted = planById(planId) || (pay.minLevel > 1 ? planForLevel(pay.minLevel) : null) || PLANS.find((p) => p.popular) || PLANS[0];
   pay.plan = wanted.level >= pay.minLevel ? wanted.id : planForLevel(pay.minLevel).id;
   $('#pay-title').textContent = title || 'Choisis ta formule';
+  setPayMode('choose');
   track('paywall_open', { need: pay.minLevel });
   logFunnel('paywall');
   renderPaywall();
@@ -1255,12 +1256,82 @@ $$('[data-open-paywall]').forEach((b) => b.addEventListener('click', () => openP
 $('#waitlist').addEventListener('submit', (e) => {
   e.preventDefault();
   const chosen = planById(pay.plan);
-  if (chosen.checkoutUrl) { track('checkout_click', { plan: chosen.id }); logFunnel('checkout'); setTimeout(() => { location.href = chosen.checkoutUrl; }, 150); return; }
+  if (chosen.checkoutUrl) { track('checkout_click', { plan: chosen.id }); logFunnel('checkout'); openCheckout(chosen); return; }
   const email = e.target.querySelector('input').value;
   store.saveWaitlist(email, chosen.id);
   supa.joinWaitlist(email, chosen.id); // no-op until Supabase is configured
   closeOverlays(); toast(`C'est noté pour la formule ${chosen.name}. On te prévient à l'ouverture.`);
 });
+
+// ───────────────────────── Whop checkout, embedded in the plans screen ─────────────────────────
+const whopPlanOf = (p) => /plan_[A-Za-z0-9]+/.exec(p.checkoutUrl || '')?.[0] || null;
+let whopLoading = null, whopCheckout = null;
+function loadWhop() {
+  whopLoading ??= new Promise((res, rej) => {
+    if (window.WhopElements) return res();
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.whop.com/elements/amber/elements.js'; sc.setAttribute('data-whop-elements', '');
+    sc.onload = () => (window.WhopElements ? res() : rej(new Error('no WhopElements'))); sc.onerror = rej;
+    document.head.append(sc); setTimeout(() => rej(new Error('timeout')), 12000);
+  }).catch((e) => { whopLoading = null; throw e; });
+  return whopLoading;
+}
+function setPayMode(mode) {
+  $('#paywall .paycard').dataset.mode = mode;
+  $('#pay-choose').hidden = mode !== 'choose'; $('#pay-checkout').hidden = mode !== 'checkout'; $('#pay-done').hidden = mode !== 'done';
+  $('#paywall .paycard').scrollTop = 0;
+}
+async function openCheckout(chosen) {
+  const planId = whopPlanOf(chosen);
+  if (!planId) { location.href = chosen.checkoutUrl; return; }
+  setPayMode('checkout');
+  $('#pay-chosen').replaceChildren(el('b', { text: `Formule ${chosen.name}` }), el('span', { text: `${perMonthLabel(chosen)} / mois · ${priceLabel(chosen)} ${chosen.months > 1 ? chosen.cycle : 'par mois'}` }));
+  $('#whop-checkout').replaceChildren(el('p', { class: 'muted pay-loading', text: 'Chargement du paiement sécurisé…' }));
+  try { await loadWhop(); } catch { location.href = chosen.checkoutUrl; return; } // Whop's script unreachable: their hosted page instead
+  try { whopCheckout?.destroy?.(); } catch { /* already gone */ }
+  $('#whop-checkout').replaceChildren();
+  const metadata = { plan: chosen.id, source: 'scantaville' };
+  if (state.user?.id) metadata.scantaville_user = state.user.id; // the webhook gives the plan to THIS account, whatever e-mail is typed
+  try {
+    whopCheckout = window.WhopElements().checkout.create({
+      plan: planId, metadata, locale: 'fr',
+      returnUrl: `${location.origin}/?paid=1`,
+      onComplete: (c) => { if (!c || c.result === 'payment') paymentDone(chosen); },
+    });
+    const email = state.user?.email || '';
+    whopCheckout.create('checkout', email ? { buyerEmail: email, lockBuyerEmail: true } : {}).mount('#whop-checkout');
+  } catch { location.href = chosen.checkoutUrl; }
+}
+$('#pay-back').addEventListener('click', () => { try { whopCheckout?.destroy?.(); } catch { /* ignore */ } whopCheckout = null; setPayMode('choose'); });
+
+/** after paying: wait for the webhook to put the plan on the account, then straight to the city */
+async function paymentDone(chosen) {
+  track('purchase', { plan: chosen?.id || '' }); logFunnel('paid');
+  setPayMode('done'); openOverlay('#paywall');
+  $('#pay-done-h').textContent = 'Paiement reçu !'; $('#pay-done-p').textContent = 'On active ta formule…'; $('#pay-done-go').hidden = true;
+  for (let i = 0; i < 20; i++) {
+    const plan = await supa.refreshPlan().catch(() => null);
+    if (plan && plan !== 'free') {
+      store.setServerPlan(plan); renderPlans(); refreshLocks();
+      $('#pay-done-h').textContent = `Formule ${planById(plan)?.name || ''} activée 🎉`;
+      $('#pay-done-p').textContent = 'Tout est débloqué. Choisis ta ville : on scanne ses commerces sans site.';
+      $('#pay-done-go').hidden = false; return;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  $('#pay-done-p').replaceChildren('Ton paiement est bien passé, l’activation prend un peu plus de temps que prévu. Recharge la page dans une minute, ou va dans ', el('a', { href: '/profil.html?paid=1', text: 'ton profil' }), ' pour l’activer.');
+}
+$('#pay-done-go').addEventListener('click', () => { $('#paywall').hidden = true; setPayMode('choose'); quiz.ready = true; showStep('city'); openOverlay('#quiz'); logFunnel('city'); });
+// back from a payment that needed a redirect (3-D Secure, PayPal…): Whop adds ?payment=…&status=…
+{
+  const q = new URLSearchParams(location.search);
+  if (q.has('paid')) {
+    const status = q.get('status');
+    history.replaceState(null, '', location.pathname);
+    if (!status || status === 'succeeded') setTimeout(() => paymentDone(null), 600);
+    else toast(status === 'canceled' ? 'Paiement annulé.' : 'Le paiement n’est pas passé. Tu peux réessayer.');
+  }
+}
 
 function refreshLocks() {
   for (const [id, feature, label] of [['#btn-csv', 'csvExport', 'Exporter en CSV'], ['#btn-kit', 'legalKit', 'Kit légal'], ['#btn-docs', 'invoicing', 'Devis / facture']]) {

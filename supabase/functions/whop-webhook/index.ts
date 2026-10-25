@@ -38,7 +38,11 @@ async function validSignature(req: Request, body: string): Promise<boolean> {
 }
 
 /** the account for this buyer: the Whop user id already linked, else the same e-mail */
-async function findProfile(whopUserId: string | null, mail: string | null): Promise<{ id: string; whop_membership_id?: string | null } | null> {
+async function findProfile(whopUserId: string | null, mail: string | null, accountId: string | null = null): Promise<{ id: string; whop_membership_id?: string | null } | null> {
+  if (accountId) {
+    const { data } = await admin.from('profiles').select('*').eq('id', accountId).maybeSingle();
+    if (data) return data;
+  }
   // select('*'): still works before payments.sql adds the whop_* columns
   if (whopUserId) {
     const { data } = await admin.from('profiles').select('*').eq('whop_user_id', whopUserId).limit(1).maybeSingle();
@@ -65,6 +69,8 @@ Deno.serve(async (req) => {
 
   const mail = email(pick(data, 'user.email', 'member.email', 'email', 'customer_email', 'user_email', 'billing_address.email'));
   const whopUserId = pick(data, 'user.id', 'user_id', 'member.user.id');
+  // the embedded checkout on scantaville.fr sends the account id in the metadata: the surest match of all
+  const accountId = (() => { const v = pick(data, 'metadata.scantaville_user', 'membership.metadata.scantaville_user'); return typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null; })();
   const membershipId = isPayment ? pick(data, 'membership.id', 'membership_id') : pick(data, 'id');
   const whopPlan = pick(data, 'plan.id', 'plan_id', 'membership.plan.id');
   const plan = whopPlan ? PLAN_MAP[String(whopPlan)] ?? null : null;
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
   try {
     if (ACTIVATE.has(type)) {
       if (!plan) { await mark('ignored', `plan Whop inconnu : ${whopPlan ?? 'aucun'} (vérifie WHOP_PLAN_MAP)`); return new Response('ok'); }
-      const profile = await findProfile(whopUserId, mail);
+      const profile = await findProfile(whopUserId, mail, accountId);
       if (!profile) {
         await mark(mail ? 'pending' : 'unmatched', mail ? 'aucun compte avec cet e-mail : appliqué à l’inscription ou depuis le profil' : 'Whop n’a pas envoyé d’e-mail (permission member:email:read ?)');
         return new Response('ok');
@@ -102,7 +108,7 @@ Deno.serve(async (req) => {
       if (error) { await mark('error', error.message); return new Response('db error', { status: 500 }); }
       await mark('applied', null, profile.id);
     } else if (DEACTIVATE.has(type)) {
-      const profile = await findProfile(whopUserId, mail);
+      const profile = await findProfile(whopUserId, mail, accountId);
       if (!profile) { await mark('unmatched', 'fin d’abonnement pour un compte introuvable'); return new Response('ok'); }
       // an upgrade creates a new membership, then ends the old one: only end the plan if it is this membership
       if (profile.whop_membership_id && membershipId && profile.whop_membership_id !== membershipId) { await mark('ignored', 'ancien abonnement remplacé'); return new Response('ok'); }
