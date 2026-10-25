@@ -18,13 +18,22 @@
           "value": "noindex, nofollow"
         }
       ]
+    },
+    {
+      "source": "/.well-known/apple-developer-merchantid-domain-association",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300"
+        }
+      ]
     }
   ],
   "rewrites": [
-    {
-      "source": "/.well-known/apple-developer-merchantid-domain-association",
-      "destination": "https://whop.com/.well-known/apple-platform-integrator/apple-developer-merchantid-domain-association"
-    },
     {
       "source": "/site/:slug",
       "destination": "/demo.html?s=:slug"
