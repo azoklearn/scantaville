@@ -58,7 +58,15 @@ async function findProfile(whopUserId: string | null, mail: string | null, accou
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
   const body = await req.text();
-  if (!(await validSignature(req, body))) { console.warn('whop-webhook: bad signature'); return new Response('bad signature', { status: 401 }); }
+  if (!(await validSignature(req, body))) {
+    console.warn('whop-webhook: bad signature');
+    // keep a trace for the admin page when it looks like Whop (signed headers present): usually a webhook secret that changed
+    if (req.headers.get('webhook-id') && req.headers.get('webhook-signature')) {
+      let type = 'unknown'; try { type = String(JSON.parse(body).type || 'unknown').slice(0, 60); } catch { /* not JSON */ }
+      await admin.from('whop_events').insert({ webhook_id: 'bad-' + req.headers.get('webhook-id'), type, status: 'error', note: 'signature refusée : le secret WHOP_WEBHOOK_SECRET ne correspond pas au webhook Whop' }).then(() => {}, () => {});
+    }
+    return new Response('bad signature', { status: 401 });
+  }
 
   const event = JSON.parse(body);
   const webhookId = req.headers.get('webhook-id');
