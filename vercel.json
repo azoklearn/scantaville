@@ -22,6 +22,10 @@
   ],
   "rewrites": [
     {
+      "source": "/.well-known/apple-developer-merchantid-domain-association",
+      "destination": "https://whop.com/.well-known/apple-platform-integrator/apple-developer-merchantid-domain-association"
+    },
+    {
       "source": "/site/:slug",
       "destination": "/demo.html?s=:slug"
     }
