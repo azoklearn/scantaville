@@ -123,10 +123,11 @@ function fakeScan() {
 }
 
 // ───────────────────────── a site being built (abstract blocks only) ─────────────────────────
-const BUILD = ['Analyse du commerce', 'Choix des couleurs', 'Mise en page', 'Textes et horaires', 'Photos', 'Bouton d’appel', 'Mise en ligne'];
+const BUILD = ['Récupération des coordonnées des commerces', 'Téléphones, adresses et horaires', 'Création de leur site', 'Mise en page et photos', 'Bouton d’appel', 'Préparation du message pour les contacter', 'Prêt à leur vendre'];
 function build() {
   const list = $('#build-steps'), pct = $('#build-pct'), canvas = $('.tt-canvas');
-  $('#build-h').textContent = 'Création de leur site en cours…'; $('#build-again').hidden = true;
+  $('#build-h').textContent = 'On récupère leurs coordonnées et on crée leur site…'; $('#build-again').hidden = true;
+  const found = Number(($('#scan-n').textContent || '0').replace(/\D/g, '')) || 120, contacts = $('#build-contacts');
   list.replaceChildren(...BUILD.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
   canvas.classList.remove('done'); $$('.tt-blk', canvas).forEach((b) => b.classList.remove('on'));
   const blocks = $$('.tt-blk', canvas), url = $('#build-url'), letters = 'www.ton-premier-client.fr';
@@ -135,6 +136,7 @@ function build() {
   const tick = (now) => {
     const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     pct.textContent = Math.round(e * 100) + ' %';
+    contacts.textContent = `${fr(found * Math.min(1, e * 1.25))} coordonnées récupérées sur ${fr(found)} commerces`;
     url.textContent = letters.slice(0, Math.max(4, Math.round(letters.length * Math.min(1, e * 1.4)))) + (e < .7 ? '▍' : '');
     const n = Math.min(BUILD.length - 1, Math.floor(e * BUILD.length * 0.999));
     while (shown < n) { shown++; list.children[shown].classList.add('on'); sound.tick(); buzz(8); }
@@ -142,7 +144,7 @@ function build() {
     while (bshown < bn) { bshown++; blocks[bshown].classList.add('on'); }
     if (k < 1) return raf(tick);
     list.children[BUILD.length - 1].classList.add('on'); canvas.classList.add('done');
-    $('#build-h').textContent = 'Ton site est prêt ✓'; sound.built(); buzz([12, 40, 20]);
+    $('#build-h').textContent = 'Leurs sites sont prêts ✓'; contacts.textContent = `${fr(found)} commerces à contacter, leur site prêt à leur vendre`; sound.built(); buzz([12, 40, 20]);
     $('#build-again').hidden = false;
   };
   raf(tick);

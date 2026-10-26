@@ -55,3 +55,4 @@ body.tt-page { background: #fff; overflow: auto; }
 @keyframes sweep { to { transform: rotate(360deg); } }
 .tt-count b { display: block; font: 900 clamp(64px, 18vw, 110px)/1 var(--display); letter-spacing: -.05em; color: var(--blue); font-variant-numeric: tabular-nums; }
 .tt-count span { display: block; margin-top: 6px; font-size: 16px; font-weight: 600; color: var(--ink-2); }
+.tt-contacts { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
