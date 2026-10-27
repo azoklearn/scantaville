@@ -1,11 +1,12 @@
 // Short "TikTok" quiz, for filming: goal -> payout -> first sale -> contact -> done-for-you -> potential -> a site being built.
-// Nothing real is created at the end. Reserved to two accounts; their e-mails are not written here, only their SHA-256.
+// Nothing real is created at the end. Reserved to a few accounts; their e-mails are not written here, only their SHA-256.
 import * as supa from './supa.mjs';
 import * as sound from './sound.mjs';
 
 const ALLOWED = new Set([
   '8ef74dcccefe8552742fa26186b28178bac5eced74c02735af0f1acba956ee41',
   'd5b5b994b4d7c58f9294de969d294ce5081b66fcfba0bcbc99be1a4ca0e93a17',
+  'df366534c34cdf31e66f86cfae5e17550d382a806c092d22992393773bc49dce',
 ]);
 const STEPS = ['goal', 'payout', 'first', 'contact', 'done4you', 'potential', 'city', 'scan', 'build'];
 const KICKER = { goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', city: 'Ta ville', scan: 'Scan de ta ville', build: 'Leur site' };
