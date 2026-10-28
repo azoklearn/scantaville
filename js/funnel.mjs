@@ -15,6 +15,16 @@ export const FUNNEL = [
   { id: 'xp', type: 'single', kicker: 'Ton parcours', q: 'Depuis combien de temps tu vends des sites ou des services ?',
     opts: [['never', 'Je n’en ai jamais fait'], ['lt1', 'Depuis moins d’un an'], ['1to3', 'Entre 1 et 3 ans']] },
 
+  { id: 'guide', type: 'info', kicker: 'Zéro expérience requise', big: '0',
+    title: 'expérience nécessaire. On te guide de A à Z.',
+    body: 'Tout le monde peut se lancer. Tu n’as rien besoin de savoir avant de commencer : on te montre quoi faire, étape par étape.',
+    checks: true, points: [
+      ['Pas besoin de savoir coder', 'Le site du commerce est généré tout seul, à son nom.'],
+      ['Pas besoin d’être commercial', 'Les messages et les phrases à dire sont écrits pour toi.'],
+      ['Pas besoin de diplôme ni de réseau', 'Les clients sont déjà repérés dans ta ville.'],
+      ['Jamais seul', '« Mon plan » te dit quoi faire chaque jour, jusqu’à ta première vente.'],
+    ], cta: 'Je peux le faire' },
+
   { id: 'explain', type: 'info', kicker: 'En trente secondes', title: 'Vendre des sites, c’est quoi ?',
     body: 'Des centaines de commerces de ta ville n’ont pas de site web et perdent des clients chaque jour. ScanTaVille te les montre sur une carte et génère leur site en une seconde. Toi, tu le leur montres sur ton téléphone, et tu le vends.',
     points: [
@@ -38,10 +48,10 @@ export const FUNNEL = [
   { id: 'analyze', type: 'analyze', kicker: 'Analyse' },
   { id: 'potential', type: 'potential', kicker: 'Ton potentiel' },
 
-  { id: 'missing', type: 'info', kicker: 'Ce qui te bloque', title: 'Il te manque la méthode et les outils clé en main.',
-    body: 'Pas d’inquiétude : ScanTaVille s’occupe de tout à ta place.', cta: 'Continuer' },
+  { id: 'missing', type: 'info', kicker: 'Ce qui te bloque', title: 'Il te manque juste la méthode. On te la donne.',
+    body: 'Pas besoin d’expérience ni de connaissances : ScanTaVille fait le plus dur à ta place et te guide pas à pas pour le reste.', cta: 'Continuer' },
   { id: 'welcome', type: 'info', kicker: 'Bienvenue', title: 'Bienvenue dans ScanTaVille.',
-    body: 'La carte des commerces sans site de ta ville, leur site généré en une seconde, les scripts pour le leur vendre, et le plan de tes 30 premiers jours. Rien d’autre.', cta: 'Suivant' },
+    body: 'On t’accompagne du premier jour à ta première vente : la carte des commerces sans site de ta ville, leur site généré en une seconde, les messages pour le leur vendre, et le plan de tes 30 premiers jours, étape par étape.', cta: 'Suivant' },
   { id: 'idea', type: 'info', kicker: 'Les clients', title: 'Trouve les commerces qui n’ont pas de site.',
     body: 'On scanne ta ville et on te montre chaque coiffeur, resto, boulangerie ou garage sans site web, avec son adresse, son téléphone et ses horaires.', cta: 'Suivant' },
   { id: 'site', type: 'info', kicker: 'Le site', title: 'Le site est déjà fait. Toi, tu le montres.',
@@ -71,7 +81,7 @@ export const FUNNEL = [
     ] },
   { id: 'words', type: 'text', kicker: 'Tes mots', q: 'Décris en une phrase la situation où tu veux être dans un an.',
     ph: 'Ex : je veux 2 000 € par mois en vendant des sites, pour ne plus dépendre de mon employeur.' },
-  { id: 'cap', type: 'info', kicker: 'Ton cap', title: 'C’est tout à fait réaliste.', body: 'Et on va le faire avec toi.', cta: 'Continuer' },
+  { id: 'cap', type: 'info', kicker: 'Ton cap', title: 'C’est tout à fait réaliste.', body: 'Même en partant de zéro. On va le faire avec toi, étape par étape.', cta: 'Continuer' },
   { id: 'now', type: 'plannow', kicker: 'Ce qu’on fait maintenant' },
   { id: 'final', type: 'final', kicker: 'Ce qui te sépare de tout ça' },
 ];
@@ -84,6 +94,7 @@ export const ANALYSIS_QUESTIONS = [
 
 /** shown in turn under the analysis (real facts, no invented testimonials) */
 export const ANALYSIS_FACTS = [
+  'Aucune expérience requise : on te guide étape par étape',
   '+15 000 commerces sans site déjà repérés dans 66 villes',
   'Un site de commerce se vend souvent entre 300 et 800 €',
   'Le site d’un commerce est généré en 1 seconde',

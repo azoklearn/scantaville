@@ -705,7 +705,7 @@ function renderFunnel() {
       if (d.big) sec.append(el('p', { class: 'f-big', text: d.big }));
       sec.append(el('h2', { class: 'quiz-h f-title', text: d.title }));
       if (d.body) sec.append(el('p', { class: 'f-body', text: d.body }));
-      if (d.points) sec.append(el('ol', { class: 'f-points' }, ...d.points.map(([t, p]) => el('li', {}, el('b', { text: t }), el('span', { text: p })))));
+      if (d.points) sec.append(el('ol', { class: d.checks ? 'f-points f-checks' : 'f-points' }, ...d.points.map(([t, p]) => el('li', {}, el('b', { text: t }), el('span', { text: p })))));
       sec.append(el('button', { class: 'cta f-go', type: 'button', onclick: next }, `${d.cta} →`));
     } else if (d.type === 'text') {
       const ta = el('textarea', { rows: '3', maxlength: '300', placeholder: d.ph, 'aria-label': d.q });
@@ -746,11 +746,11 @@ function renderFunnel() {
         el('ol', { class: 'f-now' },
           el('li', {}, el('b', { text: 'On trouve tes clients dans ta ville' }), el('span', { text: 'Chaque commerce sans site, avec adresse, téléphone et horaires.' })),
           el('li', {}, el('b', { text: 'On génère leur site à ta place' }), el('span', { text: 'Une maquette à leur nom en une seconde, prête à montrer et à mettre en ligne.' })),
-          el('li', {}, el('b', { text: 'Tu suis le plan, tu encaisses' }), el('span', { text: 'Scripts, devis, facture et suivi jour après jour dans « Mon plan ».' }))),
+          el('li', {}, el('b', { text: 'On te guide jusqu’à ta première vente' }), el('span', { text: 'Quoi dire, quoi envoyer, quoi faire chaque jour dans « Mon plan ». Aucune expérience nécessaire.' }))),
         el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
     } else if (d.type === 'final') {
-      sec.append(el('h2', { class: 'quiz-h f-title', text: 'La seule chose qui te retient, c’est une méthode claire et une structure à appliquer.' }),
-        el('p', { class: 'f-body', text: 'Pas plus de motivation, pas plus de temps, pas plus de talent. Une méthode.' }),
+      sec.append(el('h2', { class: 'quiz-h f-title', text: 'Tout le monde peut se lancer. Il te faut juste une méthode, et on te la donne.' }),
+        el('p', { class: 'f-body', text: 'Pas d’expérience, pas de diplôme, pas besoin de savoir coder ni de vendre. On te guide étape par étape.' }),
         el('button', { class: 'cta f-go', type: 'button', onclick: finishFunnel }, 'Voir les formules →'));
     }
     box.insertBefore(sec, before);
