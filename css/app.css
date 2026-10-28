@@ -1187,3 +1187,23 @@ body[data-state="landing"] .overlay, body[data-state="landing"] #suggest { color
 #quiz .f-logos button.f-opt b { width: auto; }
 .f-logo { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); box-shadow: 0 2px 6px rgba(11,27,63,.06); }
 .f-logo img { width: 26px; height: 26px; display: block; }
+
+/* plans page v3: personalised line, struck-through monthly equivalent, "just after paying" steps, CTA always on screen */
+.pay-sub { margin: -2px 0 14px; font-size: 15.5px; color: var(--ink-2); }
+#paywall .pay-plan .pp-month s { margin-right: 4px; color: var(--muted); text-decoration-color: #e5484d; text-decoration-thickness: 1.5px; }
+#paywall .pay-trust { margin: 2px 0 6px; }
+.pay-steps { list-style: none; padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: ps; }
+.pay-steps li { counter-increment: ps; display: grid; gap: 3px; align-content: start; padding: 12px 10px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); }
+.pay-steps li::before { content: counter(ps); width: 24px; height: 24px; margin-bottom: 4px; border-radius: 8px; display: grid; place-items: center; background: var(--blue); color: #fff; font: 800 13px var(--display); }
+.pay-steps b { font: 700 13.5px/1.25 var(--display); color: var(--ink); }
+.pay-steps span { font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+#paywall .pay-perks li::before { color: #0c9a6a; }
+#paywall .pay-perks { font-size: 14.5px; color: var(--ink); }
+.pay-sticky { position: sticky; bottom: calc(-20px - var(--safe-b)); z-index: 2; margin: 18px -16px calc(-20px - var(--safe-b)); padding: 14px 16px calc(14px + var(--safe-b));
+  background: linear-gradient(180deg, rgba(255,255,255,0), #fff 22%); }
+.pay-sticky #pay-go { margin-top: 0 !important; }
+.pay-fine { margin: 8px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.pay-inapp { margin: 0 0 12px; padding: 11px 14px; border-radius: 14px; background: #fff7e6; border: 1px solid #f5d48a; color: #6b4a00; font-size: 13.5px; line-height: 1.5; }
+#pay-checkout .pay-trust { margin: 14px 0 4px; }
+@media (min-width: 641px) { .pay-sticky { bottom: calc(-28px - var(--safe-b)); margin-bottom: calc(-28px - var(--safe-b)); padding-bottom: calc(22px + var(--safe-b)); } }
+#paywall .paycard > .x { background: rgba(255,255,255,.92); box-shadow: 0 4px 14px -6px rgba(11,27,63,.35); }

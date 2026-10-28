@@ -11,7 +11,7 @@ import * as supa from './supa.mjs';
 import { syncCoach, pushSoon as pushCoachSoon } from './coach.mjs';
 import { FUNNEL, ANALYSIS_QUESTIONS, ANALYSIS_FACTS } from './funnel.mjs';
 import { shopPhoto, paintPhoto } from './photos.mjs';
-import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, planById, planForFeature, planForLevel } from './plans.mjs';
+import { PLANS, FREE, FEATURES, SCRIPT_LEVEL, limitFor, priceLabel, perMonthLabel, savingPct, monthlyEquivalent, planById, planForFeature, planForLevel } from './plans.mjs';
 
 applyBrand();
 
@@ -644,11 +644,11 @@ function syncQuizFromAnswers() {
   if (!A.how) quiz.social = lim.includes('door') ? 'shy' : lim.includes('none') ? 'easy' : lim.length ? 'ok' : quiz.social || 'ok';
 }
 function nextOf(id) { return FLOW[FLOW.indexOf(id) + 1]; }
+const devSkip = () => /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('nosignup'); // local tests only
 function go(id, push = true) {
   const d = DEF[id];
   if (!d) return finishFunnel();
-  const devSkip = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('nosignup'); // local tests only
-  if (d.type === 'email' && (!supa.enabled || state.user || devSkip)) return go(nextOf(id), push); // already has an account
+  if (d.type === 'email' && (!supa.enabled || state.user || devSkip())) return go(nextOf(id), push); // already has an account
   if (push && fstate.cur && fstate.cur !== id && fstate.cur !== 'analyze') fstate.hist.push(fstate.cur);
   showStep(id);
   if (d.type === 'analyze') { syncQuizFromAnswers(); analyze(null, () => go(nextOf('analyze'))); }
@@ -775,7 +775,7 @@ function finishFunnel() {
   track('quiz_done', { goal: quiz.goal });
   if (!supa.enabled || store.planLevel() > 0) { showStep('city'); logFunnel('city'); return; }
   $('#quiz').hidden = true;
-  if (!state.user) { state.afterAuth = 'paywall'; askAccount(); } else planPaywall();
+  if (!state.user && !devSkip()) { state.afterAuth = 'paywall'; askAccount(); } else planPaywall();
 }
 
 /** a small burst of blue sparks from where the answer was tapped */
@@ -858,7 +858,8 @@ function afterQuiz() {
 }
 /** before paying: the plan is ready, the city scan is what the plans unlock */
 function planPaywall() {
-  openPaywall(quiz.goal ? 'Ton plan est prêt. Débloque ta ville.' : 'Scanne ta ville et vois ses commerces sans site.', { minLevel: 1 });
+  const name = store.getAuthor();
+  openPaywall(quiz.goal ? `${name ? name + ', t' : 'T'}on plan pour ${fr(quiz.goal)} € par mois est prêt.` : 'Scanne ta ville et vois ses commerces sans site.', { minLevel: 1 });
 }
 $('#quiz-go').addEventListener('click', afterQuiz);
 for (const b of $$('#quiz [data-close]')) b.addEventListener('click', () => { if (!quiz.done && quizCalc && store.planLevel() === 0) { quiz.done = true; setTimeout(planPaywall, 200); } });
@@ -1222,13 +1223,9 @@ function openPaywall(title, { feature, minLevel, planId } = {}) {
 function renderPaywall() {
   const chosen = planById(pay.plan);
   // what they just built in the quiz, so the paywall talks about THEIR plan
-  const recap = $('#pay-recap');
-  if (quizCalc && quiz.goal) {
-    const [ic, pname] = personaOf(quiz);
-    recap.hidden = false;
-    recap.replaceChildren(el('span', {}, '🎯 ', el('b', { text: `${fr(quiz.goal)} €` }), ' / mois'), el('span', {}, `${ic} ${pname}`), el('span', {}, '🏪 ', el('b', { text: String(quizCalc.sites) }), ` site${quizCalc.sites > 1 ? 's' : ''} / mois`));
-  } else recap.hidden = true;
-  $('#pay-sub').hidden = !recap.hidden; // the recap already says it
+  $('#pay-sub').textContent = quizCalc && quiz.goal
+    ? `Il ne manque plus que les commerces de ta ville : ${quizCalc.sites} site${quizCalc.sites > 1 ? 's' : ''} vendu${quizCalc.sites > 1 ? 's' : ''} par mois suffisent pour y arriver.`
+    : 'Il ne manque plus que les commerces de ta ville. Chaque formule comprend tout ce qu’offre la précédente.';
   const best = PLANS.reduce((a, p) => (p.price / p.months < a.price / a.months ? p : a));
   $('#pay-plans').replaceChildren(...PLANS.map((p) => {
     const off = p.level < pay.minLevel, save = savingPct(p), on = p.id === pay.plan;
@@ -1239,16 +1236,18 @@ function renderPaywall() {
     }, el('i', { class: 'pp-radio', 'aria-hidden': 'true' }),
       el('span', { class: 'pp-main' }, el('b', { text: p.name }), el('span', { class: 'pp-period', text: p.period + (p.popular ? ' · le plus choisi' : p === best ? ' · meilleur prix' : '') })),
       // the monthly price is the big number; what is actually charged is written under it
-      el('span', { class: 'pp-right' }, el('span', { class: 'pp-price' }, perMonthLabel(p), el('small', { text: ' / mois' })), el('span', { class: 'pp-month', text: p.months > 1 ? `${priceLabel(p)} ${p.cycle}` : 'sans engagement' })),
+      // struck through: what the same months cost on the monthly plan (a real price, not an invented one)
+      el('span', { class: 'pp-right' }, el('span', { class: 'pp-price' }, perMonthLabel(p), el('small', { text: ' / mois' })),
+        el('span', { class: 'pp-month' }, monthlyEquivalent(p) ? el('s', { text: monthlyEquivalent(p), title: `Prix de ${p.months} mois avec la formule au mois` }) : null, p.months > 1 ? ` ${priceLabel(p)} ${p.cycle}` : 'sans engagement')),
       save ? el('span', { class: 'pp-save', text: `−${save} %` }) : null);
   }));
   const times = Math.floor(SITE_PRICE / chosen.price);
   $('#pay-roi').replaceChildren('💸 ', el('b', { text: `1 seul site vendu (${fr(SITE_PRICE)} €)` }), ` rembourse ${times} fois la formule ${chosen.name}.`);
-  $('#pay-perks').replaceChildren(...chosen.perks.filter((x) => !/^Tout /.test(x.text)).slice(0, 5).map(perkNode));
-  $('#pay-go').textContent = chosen.checkoutUrl ? `Débloquer ma ville · ${priceLabel(chosen)}` : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
+  $('#pay-perks').replaceChildren(...(chosen.highlights || chosen.perks.map((x) => x.text)).map((t) => el('li', {}, el('span', { text: t }))));
+  $('#pay-go').textContent = chosen.checkoutUrl ? 'Débloquer ma ville →' : `Me prévenir · ${chosen.name} ${priceLabel(chosen)}`;
   $('#waitlist input').hidden = !!chosen.checkoutUrl; $('#waitlist input').required = !chosen.checkoutUrl;
   $('#pay-fine').textContent = chosen.checkoutUrl
-    ? `Paiement sur Whop avec l’e-mail de ton compte. ${chosen.months > 1 ? `Renouvelé ${chosen.cycle}.` : 'Résiliable à tout moment.'}`
+    ? `${chosen.name} · ${priceLabel(chosen)} ${chosen.cycle} · résiliable en 2 clics`
     : 'Prototype : le paiement n\'est pas encore branché. Ton e-mail reste sur cet appareil, et on te prévient à l\'ouverture.';
 }
 
@@ -1287,6 +1286,8 @@ async function openCheckout(chosen) {
   setPayMode('checkout');
   $('#pay-chosen').replaceChildren(el('b', { text: `Formule ${chosen.name}` }), el('span', { text: `${perMonthLabel(chosen)} / mois · ${priceLabel(chosen)} ${chosen.months > 1 ? chosen.cycle : 'par mois'}` }));
   $('#whop-checkout').replaceChildren(el('p', { class: 'muted pay-loading', text: 'Chargement du paiement sécurisé…' }));
+  $('#pay-hosted').href = chosen.checkoutUrl;
+  $('#pay-inapp').hidden = !/TikTok|musical_ly|Bytedance|Instagram|FBAN|FBAV|Snapchat/i.test(navigator.userAgent); // in-app browsers often hide Apple Pay / Google Pay
   try { await loadWhop(); } catch { location.href = chosen.checkoutUrl; return; } // Whop's script unreachable: their hosted page instead
   try { whopCheckout?.destroy?.(); } catch { /* already gone */ }
   $('#whop-checkout').replaceChildren();

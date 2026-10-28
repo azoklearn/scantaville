@@ -9,6 +9,7 @@ export const PLANS = [
     id: 'm1', level: 1, name: 'Essentiel', period: '1 mois', cycle: 'par mois, sans engagement',
     price: 19.9, months: 1, checkoutUrl: 'https://whop.com/checkout/plan_kNW3NHWQg9Ty1/',
     pitch: 'Pour tester sur ta ville et décrocher un premier rendez-vous.',
+    highlights: ['20 commerces sans site débloqués dans ta ville', 'Leur site généré en 1 seconde, 10 par jour', 'Les messages à leur envoyer, déjà écrits', '« Mon plan » : quoi faire chaque jour'],
     perks: [
       { text: '20 commerces débloqués par ville' },
       { text: '10 maquettes de sites par jour' },
@@ -21,6 +22,7 @@ export const PLANS = [
     id: 'm3', level: 2, name: 'Pro', period: '3 mois', cycle: 'tous les 3 mois',
     price: 29.9, months: 3, checkoutUrl: 'https://whop.com/checkout/plan_m05UMVsdrVkG9/', popular: true,
     pitch: 'Le temps qu’il faut pour signer un premier client : compte ~2 contacts.',
+    highlights: ['100 commerces sans site débloqués dans ta ville', 'Des sites illimités, à leur nom, sans mention ScanTaVille', 'Tous les messages et les réponses aux objections, déjà écrits', 'Devis et facture prêts à envoyer', 'Mise en ligne du site vendu en un clic', '« Mon plan » : on te guide jour par jour'],
     perks: [
       { text: 'Tout Essentiel' },
       { text: '100 commerces débloqués par ville' },
@@ -37,6 +39,7 @@ export const PLANS = [
     id: 'y1', level: 3, name: 'Illimité', period: '1 an', cycle: 'par an',
     price: 79, months: 12, checkoutUrl: 'https://whop.com/checkout/plan_5cYuHjzfNRNQ4/',
     pitch: 'Pour en faire une vraie activité, toute l’année, dans plusieurs villes.',
+    highlights: ['Tous les commerces sans site de ta ville, sans limite', 'Tout ce qu’il y a dans Pro, pendant 1 an', 'Plusieurs villes, et ta ville pré-scannée sur demande', '« Mon plan » : on te guide jour par jour'],
     perks: [
       { text: 'Tout Pro' },
       { text: 'Tous les commerces de chaque ville, sans limite' },
@@ -76,6 +79,8 @@ export const FEATURES = {
 const eur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €';
 export const priceLabel = (p) => eur(p.price);
 export const perMonthLabel = (p) => eur(Math.round((p.price / p.months) * 100) / 100);
+/** what the same duration costs on the monthly plan (the real reference shown struck through), null for the monthly plan */
+export const monthlyEquivalent = (p) => (p.months > 1 ? eur(Math.round(PLANS[0].price * p.months * 100) / 100) : null);
 /** saving versus paying the monthly plan for the same duration, in % (0 for the monthly plan) */
 export function savingPct(p) {
   const monthly = PLANS[0].price * p.months;

@@ -297,18 +297,18 @@
       <p class="kicker"><i class="dot"></i> Débloque ta ville</p>
       <h2 id="pay-title">Choisis ta formule</h2>
       <div id="pay-choose">
-      <div id="pay-recap" class="pay-recap" hidden></div>
-      <p id="pay-sub" class="muted">Ton plan est prêt. Pour scanner ta ville, voir ses commerces et générer leurs sites, il faut une formule. Chacune comprend tout ce qu'offre la précédente.</p>
+      <p id="pay-sub" class="pay-sub">Il ne manque plus que les commerces de ta ville. Chaque formule comprend tout ce qu'offre la précédente.</p>
       <div id="pay-plans" class="pay-plans" role="radiogroup" aria-label="Formules"></div>
+      <ul class="pay-trust" aria-label="Garanties"><li>🔒 Paiement sécurisé</li><li>⚡ Accès immédiat</li><li>↩︎ Résiliable en 2 clics</li></ul>
+      <p class="pay-h">Juste après le paiement</p>
+      <ol class="pay-steps">
+        <li><b>Tu choisis ta ville</b><span>On scanne ses commerces sans site.</span></li>
+        <li><b>Leurs sites sont prêts</b><span>À leur nom, à montrer sur ton téléphone.</span></li>
+        <li><b>On te guide</b><span>Jour par jour, jusqu'à ta première vente.</span></li>
+      </ol>
       <p id="pay-roi" class="pay-roi"></p>
       <p class="pay-h">Ce que tu débloques</p>
       <ul id="pay-perks" class="pay-perks"></ul>
-      <form id="waitlist">
-        <input type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail">
-        <button id="pay-go" class="cta" type="submit">Continuer</button>
-      </form>
-      <ul class="pay-trust" aria-label="Garanties"><li>🔒 Paiement sécurisé</li><li>⚡ Accès immédiat</li><li>↩︎ Résiliable en 2 clics</li></ul>
-      <p id="pay-fine" class="fine"></p>
       <div class="pay-faq">
         <p class="pay-h">Les questions qu'on nous pose</p>
         <details><summary>Je n'ai aucune expérience, je peux me lancer ?</summary><p>Oui, c'est fait pour ça. Tu n'as besoin d'aucune connaissance : les clients sont repérés, leurs sites sont générés, les messages sont écrits, et « Mon plan » te guide jour par jour jusqu'à ta première vente.</p></details>
@@ -318,13 +318,20 @@
         <details><summary>Comment je suis sûr d'avoir des résultats ?</summary><p>Personne ne peut te garantir un revenu. Ce qu'on te garantit, ce sont les outils : les commerces sans site de ta ville, leur site prêt, les scripts et le suivi. Le reste dépend de toi.</p></details>
         <details><summary>Je peux arrêter quand je veux ?</summary><p>Oui. L'abonnement se résilie en deux clics depuis ton compte Whop, sans avoir à écrire à qui que ce soit.</p></details>
       </div>
+      <form id="waitlist" class="pay-sticky">
+        <input type="email" required placeholder="ton@email.fr" aria-label="Ton e-mail">
+        <button id="pay-go" class="cta" type="submit">Continuer</button>
+        <p id="pay-fine" class="pay-fine"></p>
+      </form>
       </div>
       <!-- Whop checkout embedded in the page (js/app.mjs openCheckout) -->
       <div id="pay-checkout" hidden>
         <button id="pay-back" class="link pay-back" type="button">← Changer de formule</button>
         <div class="pay-chosen" id="pay-chosen"></div>
+        <p id="pay-inapp" class="pay-inapp" hidden>Tu es dans l'app TikTok ou Instagram : Apple Pay et Google Pay peuvent ne pas s'y afficher. Tu peux payer par carte ici, ou ouvrir <b>scantaville.fr</b> dans Safari ou Chrome (menu <b>•••</b> → Ouvrir dans le navigateur).</p>
         <div id="whop-checkout" class="whop-box"><p class="muted pay-loading">Chargement du paiement sécurisé…</p></div>
-        <p class="fine">Paiement sécurisé, encaissé par Whop. Ton abonnement s'active sur ton compte ScanTaVille dès le paiement validé.</p>
+        <ul class="pay-trust"><li>🔒 Paiement sécurisé</li><li>⚡ Accès immédiat</li><li>↩︎ Résiliable en 2 clics</li></ul>
+        <p class="fine">Paiement encaissé par Whop. Ta formule s'active sur ton compte ScanTaVille dès le paiement validé. Le paiement ne s'affiche pas ? <a id="pay-hosted" href="#" target="_blank" rel="noopener">Payer sur la page Whop</a> avec l'e-mail de ton compte.</p>
       </div>
       <div id="pay-done" class="pay-done" hidden>
         <div class="pay-check" aria-hidden="true">✓</div>
