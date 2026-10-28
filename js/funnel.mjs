@@ -51,7 +51,7 @@ export const FUNNEL = [
   { id: 'beforeafter', type: 'beforeafter', kicker: 'Avant, après' },
 
   { id: 'payout', type: 'single', kicker: 'Ton argent', q: 'Sur quoi tu veux recevoir tes paiements ?',
-    opts: [['bank', 'Virement bancaire'], ['paypal', 'PayPal'], ['revolut', 'Revolut'], ['wero', 'Lydia / Wero']] },
+    opts: [['bank', 'Virement bancaire', null, '/img/pay/bank.svg'], ['paypal', 'PayPal', null, '/img/pay/paypal.svg'], ['revolut', 'Revolut', null, '/img/pay/revolut.svg'], ['wero', 'Lydia / Wero', null, '/img/pay/lydia.svg']] },
   { id: 'pain', type: 'multi', other: true, kicker: 'Ce qui pique', q: 'Qu’est-ce qui t’énerve le plus dans ta situation ?',
     opts: [['cap', 'Mes revenus sont plafonnés'], ['time', 'Je n’ai plus de temps à moi'], ['others', 'Je vois des gens réussir'], ['fomo', 'J’ai peur de rater le moment']] },
   { id: 'stopper', type: 'single', other: true, kicker: 'Le vrai blocage', q: 'Qu’est-ce qui t’a arrêté jusqu’ici ?',

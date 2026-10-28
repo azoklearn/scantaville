@@ -677,17 +677,17 @@ function renderFunnel() {
     const sec = el('section', { class: `quiz-step f-step f-${d.type}`, 'data-step': d.id, hidden: '' });
     if (d.q) sec.append(el('h2', { class: 'quiz-h qq', text: d.q }));
     if (d.type === 'single' || d.type === 'multi') {
-      const multi = d.type === 'multi', opts = el('div', { class: 'quiz-opts f-opts' + (d.opts.some((o) => o[2]) ? ' f-rich' : '') });
+      const multi = d.type === 'multi', opts = el('div', { class: 'quiz-opts f-opts' + (d.opts.some((o) => o[2]) ? ' f-rich' : '') + (d.opts.some((o) => o[3]) ? ' f-logos' : '') });
       const go_ = el('button', { class: 'cta f-go', type: 'button', disabled: multi ? '' : null, hidden: multi ? null : '', text: 'Coche au moins une réponse' });
       const other = d.other ? el('div', { class: 'f-other-box', hidden: '' }, el('input', { type: 'text', maxlength: '140', placeholder: 'Écris ta réponse…', 'aria-label': 'Ta réponse' })) : null;
       const refresh = () => { const n = $$('.picked', opts).length + (other && !other.hidden && other.querySelector('input').value.trim() ? 1 : 0); if (multi) { go_.disabled = !n; go_.textContent = n ? 'Continuer →' : 'Coche au moins une réponse'; } };
-      for (const [v, label, desc] of d.opts) {
+      for (const [v, label, desc, icon] of d.opts) {
         opts.append(el('button', { type: 'button', class: 'f-opt', 'data-v': v, onclick: (e) => {
           const b = e.currentTarget; burst(b, e); sound.unlock(); sound.flip(); buzz(14);
           if (multi) { if (v === 'none') $$('.picked', opts).forEach((x) => x !== b && x.classList.remove('picked')); else $$('[data-v="none"]', opts).forEach((x) => x.classList.remove('picked')); b.classList.toggle('picked'); refresh(); return; }
           $$('.picked', opts).forEach((x) => x.classList.remove('picked')); b.classList.add('picked');
           fstate.answers[d.id] = v; track('quiz_answer', { q: d.id, a: v }); setTimeout(next, 380);
-        } }, el('b', { text: label }), desc ? el('small', { text: desc }) : null));
+        } }, icon ? el('span', { class: 'f-logo' }, el('img', { src: icon, alt: '' })) : null, el('b', { text: label }), desc ? el('small', { text: desc }) : null));
       }
       if (other) {
         opts.append(el('button', { type: 'button', class: 'f-opt f-other', onclick: () => { other.hidden = !other.hidden; if (!multi) go_.hidden = other.hidden; if (!other.hidden) other.querySelector('input').focus(); refresh(); } },
