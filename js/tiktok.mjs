@@ -33,6 +33,7 @@ function show(name) {
   if (name === 'potential') potential();
   if (name === 'build') build();
   if (name === 'setup') hideNotif();
+  if (name === 'goal') goalCued = false;
   if (name === 'scan') fakeScan();
   if (name === 'city') setTimeout(() => $('#tt-city input').focus(), 300);
 }
@@ -55,7 +56,7 @@ for (const box of $$('.tt-opts')) box.addEventListener('click', (e) => {
 for (const b of $$('[data-next]')) b.addEventListener('click', () => { sound.unlock(); next(); });
 
 // ───────────────────────── goal gauge (drag anywhere on the track) ─────────────────────────
-let lastStep = -1;
+let lastStep = -1, goalCued = false;
 function drawGauge() {
   const r = $('#goal-gauge'), v = Number(r.value), pct = ((v - r.min) / (r.max - r.min)) * 100;
   $('#goal-val').textContent = fr(v) + ' €';
@@ -70,9 +71,13 @@ function drawGauge() {
   let drag = false;
   track.addEventListener('pointerdown', (e) => { e.preventDefault(); sound.unlock(); try { track.setPointerCapture(e.pointerId); } catch { /* synthetic */ } drag = true; track.classList.add('drag'); setX(e.clientX); });
   track.addEventListener('pointermove', (e) => { if (drag) setX(e.clientX); });
-  const end = () => { drag = false; track.classList.remove('drag'); };
+  // "au début": the notification drops once, as soon as the goal is let go (the creator has just said the amount)
+  const picked = () => { if (!goalCued) { goalCued = true; cue('goal', 700); } };
+  const end = () => { if (drag) picked(); drag = false; track.classList.remove('drag'); };
   track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
   range.addEventListener('input', drawGauge);
+  range.addEventListener('change', picked);
+  $('[data-step=goal] [data-next]').addEventListener('click', picked); // goal kept as is: drops right after
 }
 
 // ───────────────────────── "on chiffre ton potentiel" ─────────────────────────
@@ -194,8 +199,8 @@ setupForm.addEventListener('submit', (e) => { e.preventDefault(); sound.unlock()
 let lastShop = -1;
 const pickBank = () => { let r = Math.random() * BANKS.reduce((t, b) => t + b.w, 0); return BANKS.find((b) => (r -= b.w) < 0) || BANKS[0]; };
 const euros = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0€';
-/** called at the three moments of the quiz; the notification only drops at the one chosen */
-function cue(moment) { if (cfg.kind !== 'none' && cfg.when === moment) { clearTimeout(notifTimer); notifTimer = setTimeout(showNotif, 1300); } }
+/** called at the four moments of the quiz; the notification only drops at the one chosen */
+function cue(moment, delay = 1300) { if (cfg.kind !== 'none' && cfg.when === moment) { clearTimeout(notifTimer); notifTimer = setTimeout(showNotif, delay); } }
 function showNotif() {
   let icon, dark = false, title, l1, l2 = '';
   if (cfg.kind === 'msg') {
