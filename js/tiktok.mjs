@@ -172,6 +172,8 @@ const BANKS = [
   { id: 'lydia', w: 1, app: 'Lydia', icon: '/img/pay/lydia.svg', lines: (a, n, r) => [`${n} vous a envoyé ${a}`, `« ${r} »`] },
   { id: 'bank', w: 1, app: 'Ma Banque', icon: '/img/pay/bank.svg', lines: (a, n, r) => [`Virement reçu : +${a}`, `VIR SEPA ${n.toUpperCase()} · ${r.toUpperCase()}`] },
 ];
+// icons loaded up front: otherwise the logo pops in after the banner has already slid down
+const ICONS = new Map([...BANKS.map((b) => b.icon), '/img/notif-messages.svg'].map((src) => { const im = new Image(); im.alt = ''; im.src = src; im.decode?.().catch(() => {}); return [src, im]; }));
 const CFG_KEY = 'stv-tt-notif';
 let cfg = { kind: 'pay', bank: 'random', from: '', amount: '', ref: '', sender: '', text: '', when: 'end' };
 try { cfg = { ...cfg, ...JSON.parse(localStorage.getItem(CFG_KEY) || '{}') }; } catch { /* private mode: defaults */ }
@@ -215,10 +217,11 @@ function showNotif() {
   }
   let n = $('#tt-notif');
   if (!n) { n = el('div', { id: 'tt-notif', class: 'tt-notif', role: 'status' }); n.addEventListener('click', hideNotif); document.body.append(n); }
-  n.replaceChildren(el('span', { class: 'tt-notif-ic' + (dark ? ' dark' : '') + (cfg.kind === 'msg' ? ' full' : '') }, el('img', { src: icon, alt: '' })),
+  n.replaceChildren(el('span', { class: 'tt-notif-ic' + (dark ? ' dark' : '') + (cfg.kind === 'msg' ? ' full' : '') }, ICONS.get(icon) || el('img', { src: icon, alt: '' })),
     el('div', { class: 'tt-notif-tx' }, el('p', { class: 'tt-notif-top' }, el('b', { text: title }), el('small', { text: 'maintenant' })), el('p', { class: 'tt-notif-l1', text: l1 }), l2 ? el('p', { class: 'tt-notif-l2', text: l2 }) : null));
-  void n.offsetWidth; n.classList.add('on'); sound.notif(); buzz([30, 60, 30]);
-  clearTimeout(notifTimer); notifTimer = setTimeout(hideNotif, 7000);
+  const drop = () => { void n.offsetWidth; n.classList.add('on'); sound.notif(); buzz([30, 60, 30]); clearTimeout(notifTimer); notifTimer = setTimeout(hideNotif, 7000); };
+  const im = ICONS.get(icon);
+  if (im?.complete) drop(); else Promise.race([im?.decode?.(), new Promise((r) => setTimeout(r, 600))]).catch(() => {}).then(drop);
 }
 function hideNotif() { clearTimeout(notifTimer); $('#tt-notif')?.classList.remove('on'); }
 
