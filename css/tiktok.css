@@ -73,3 +73,24 @@ body.tt-page { background: #fff; overflow: auto; }
 .tt-notif-l1 { font-size: 14.5px; line-height: 1.3; }
 .tt-notif-l2 { font-size: 13.5px; line-height: 1.3; color: rgba(60,60,67,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (prefers-reduced-motion: reduce) { .tt-notif { transition: none; } }
+.tt-notif-ic.full { background: none; box-shadow: none; } .tt-notif-ic.full img { width: 40px; height: 40px; }
+
+/* setup screen (before filming) */
+.tt-setup-form { display: grid; gap: 14px; margin-top: 8px; text-align: left; }
+.tt-setup-form fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+.tt-setup-form fieldset[hidden], .tt-setup-form [hidden] { display: none; }
+.tt-setup-form label { display: grid; gap: 6px; font: 600 14px var(--body); color: var(--ink-2); }
+.tt-setup-form input, .tt-setup-form select, .tt-setup-form textarea { width: 100%; min-height: 50px; padding: 12px 14px; border: 1.5px solid var(--line-2); border-radius: 14px; background: #fff; font: 500 16px var(--body); color: var(--ink); outline: 0; resize: none; }
+.tt-setup-form input:focus, .tt-setup-form select:focus, .tt-setup-form textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(29,91,255,.12); }
+.tt-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line); }
+.tt-seg label { display: block; }
+.tt-seg input { position: absolute; opacity: 0; pointer-events: none; width: 1px; min-height: 0; }
+.tt-seg span { display: grid; place-items: center; min-height: 44px; border-radius: 12px; font: 700 14.5px var(--display); color: var(--ink-2); cursor: pointer; transition: background .2s, color .2s; }
+.tt-seg input:checked + span { background: #fff; color: var(--blue); box-shadow: 0 4px 14px -6px rgba(11,27,63,.3); }
+.tt-seg input:focus-visible + span { outline: 2px solid var(--blue); }
+.tt-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
+.tt-chips button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: #fff; font: 600 13px var(--body); color: var(--ink-2); cursor: pointer; }
+.tt-chips button:active { background: var(--bg-3); color: var(--blue); }
+.tt-try { justify-self: center; font-weight: 700; }
+#build-setup { display: block; margin: 12px auto 0; }
+#build-setup[hidden] { display: none; }

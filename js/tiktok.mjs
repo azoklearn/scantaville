@@ -9,7 +9,7 @@ const ALLOWED = new Set([
   'df366534c34cdf31e66f86cfae5e17550d382a806c092d22992393773bc49dce',
 ]);
 const STEPS = ['goal', 'payout', 'first', 'contact', 'done4you', 'potential', 'city', 'scan', 'build'];
-const KICKER = { goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', city: 'Ta ville', scan: 'Scan de ta ville', build: 'Leur site' };
+const KICKER = { setup: 'Avant de filmer', goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', city: 'Ta ville', scan: 'Scan de ta ville', build: 'Leur site' };
 const SITE_PRICE = 400;
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -32,6 +32,7 @@ function show(name) {
   $('.quizcard').scrollTop = 0;
   if (name === 'potential') potential();
   if (name === 'build') build();
+  if (name === 'setup') hideNotif();
   if (name === 'scan') fakeScan();
   if (name === 'city') setTimeout(() => $('#tt-city input').focus(), 300);
 }
@@ -89,7 +90,7 @@ function potential() {
     $('.tt-pot .an-ring').hidden = true; $('.tt-pot h2').textContent = 'Ton potentiel est prêt.';
     $('#pot-range').textContent = `${fr(low)} € à ${fr(high)} €`;
     $('#pot-tiles').replaceChildren(...[[fr(sites), 'sites à vendre'], [`${fr(SITE_PRICE)} €`, 'par site'], [`${fr(goal)} €`, 'ton objectif']].map(([b, t]) => el('div', {}, el('b', { text: b }), el('span', { text: t }))));
-    res.hidden = false; sound.landed(); buzz([12, 40, 20]); coins(18);
+    res.hidden = false; sound.landed(); buzz([12, 40, 20]); coins(18); cue('potential');
   };
   raf(tick);
 }
@@ -117,7 +118,7 @@ function fakeScan() {
     if (k < 1) return raf(tick);
     $('#scan-h').textContent = `${city} : c’est fait.`;
     $('#scan-sub').textContent = `commerces sans site web trouvés à ${city}`;
-    $('.tt-radar').classList.add('done'); sound.landed(); buzz([12, 40, 20]);
+    $('.tt-radar').classList.add('done'); sound.landed(); buzz([12, 40, 20]); cue('scan');
     $('#scan-go').hidden = false;
   };
   raf(tick);
@@ -127,9 +128,8 @@ function fakeScan() {
 const BUILD = ['Récupération des coordonnées des commerces', 'Téléphones, adresses et horaires', 'Création de leur site', 'Mise en page et photos', 'Bouton d’appel', 'Préparation du message pour les contacter', 'Prêt à leur vendre'];
 let notifTimer = 0;
 function build() {
-  hideNotif();
   const list = $('#build-steps'), pct = $('#build-pct'), canvas = $('.tt-canvas');
-  $('#build-h').textContent = 'On récupère leurs coordonnées et on crée leur site…'; $('#build-again').hidden = true;
+  $('#build-h').textContent = 'On récupère leurs coordonnées et on crée leur site…'; $('#build-again').hidden = true; $('#build-setup').hidden = true;
   const found = Number(($('#scan-n').textContent || '0').replace(/\D/g, '')) || 120, contacts = $('#build-contacts');
   list.replaceChildren(...BUILD.map((t) => el('li', {}, el('i'), el('span', { text: t }))));
   canvas.classList.remove('done'); $$('.tt-blk', canvas).forEach((b) => b.classList.remove('on'));
@@ -148,35 +148,72 @@ function build() {
     if (k < 1) return raf(tick);
     list.children[BUILD.length - 1].classList.add('on'); canvas.classList.add('done');
     $('#build-h').textContent = 'Leurs sites sont prêts ✓'; contacts.textContent = `${fr(found)} commerces à contacter, leur site prêt à leur vendre`; sound.built(); buzz([12, 40, 20]);
-    $('#build-again').hidden = false;
-    notifTimer = setTimeout(payNotif, 1300);
+    $('#build-again').hidden = false; $('#build-setup').hidden = false;
+    cue('end');
   };
   raf(tick);
 }
+$('#build-setup').addEventListener('click', () => show('setup'));
 $('#build-again').addEventListener('click', () => { hideNotif(); $$('.picked').forEach((b) => b.classList.remove('picked')); $('#tt-city').reset(); show('goal'); });
 
-// ───────────────────────── a payment notification once the sites are ready (illustration for the videos) ─────────────────────────
-// A different shop, amount and bank each run. Revolut comes up most often (we have its logo).
+// ───────────────────────── the notification of the video (illustration), chosen on the setup screen ─────────────────────────
+// Transfer: bank, sender, amount and reason, each "au hasard" when left empty (Revolut comes up most often, we have its logo).
+// iMessage: any sender and text, for the memes ("Je te quitte."...).
 const SHOPS = ['Boulangerie Martin', 'Salon Léa Coiffure', 'Garage des Lilas', 'Pizzeria Bella Napoli', 'Fleurs de Camille', 'Boucherie Lefèvre', 'Institut Belle Peau',
   'Le Petit Bistrot', 'Barber Shop Kenzo', 'Pressing du Centre', 'Tacos House', 'Auto-École Rivoli', 'Ongles by Inès', 'Cordonnerie Morel', 'Le Comptoir Thaï', 'Plomberie Garcia', 'Pizza Nizar'];
 const BANKS = [
-  { w: 6, app: 'Revolut', icon: '/img/pay/revolut.svg', dark: true, lines: (a, n) => [`Vous avez reçu ${a} de ${n} 💸`, 'Réf. : création site internet'] },
-  { w: 2, app: 'PayPal', icon: '/img/pay/paypal.svg', lines: (a, n) => [`${n} vous a envoyé ${a}`, 'Note : site web'] },
-  { w: 1, app: 'Lydia', icon: '/img/pay/lydia.svg', lines: (a, n) => [`${n} vous a envoyé ${a}`, '« Pour le site internet »'] },
-  { w: 1, app: 'Ma Banque', icon: '/img/pay/bank.svg', lines: (a, n) => [`Virement reçu : +${a}`, `VIR SEPA ${n.toUpperCase()} · SITE WEB`] },
+  { id: 'revolut', w: 6, app: 'Revolut', icon: '/img/pay/revolut.svg', dark: true, lines: (a, n, r) => [`Vous avez reçu ${a} de ${n} 💸`, `Réf. : ${r}`] },
+  { id: 'paypal', w: 2, app: 'PayPal', icon: '/img/pay/paypal.svg', lines: (a, n, r) => [`${n} vous a envoyé ${a}`, `Note : ${r}`] },
+  { id: 'lydia', w: 1, app: 'Lydia', icon: '/img/pay/lydia.svg', lines: (a, n, r) => [`${n} vous a envoyé ${a}`, `« ${r} »`] },
+  { id: 'bank', w: 1, app: 'Ma Banque', icon: '/img/pay/bank.svg', lines: (a, n, r) => [`Virement reçu : +${a}`, `VIR SEPA ${n.toUpperCase()} · ${r.toUpperCase()}`] },
 ];
+const CFG_KEY = 'stv-tt-notif';
+let cfg = { kind: 'pay', bank: 'random', from: '', amount: '', ref: '', sender: '', text: '', when: 'end' };
+try { cfg = { ...cfg, ...JSON.parse(localStorage.getItem(CFG_KEY) || '{}') }; } catch { /* private mode: defaults */ }
+
+const setupForm = $('#tt-setup');
+function fillSetup() {
+  for (const [k, v] of Object.entries(cfg)) if (setupForm.elements[k]) setupForm.elements[k].value = v;
+  syncKind();
+}
+function readSetup() {
+  const f = setupForm.elements;
+  cfg = { kind: f.kind.value, bank: f.bank.value, from: f.from.value.trim(), amount: f.amount.value.trim(), ref: f.ref.value.trim(), sender: f.sender.value.trim(), text: f.text.value.trim(), when: f.when.value };
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch { /* not saved, still used for this run */ }
+}
+function syncKind() {
+  const kind = setupForm.elements.kind.value;
+  $$('fieldset[data-kind]', setupForm).forEach((fs) => { fs.hidden = fs.dataset.kind !== kind; });
+  $('.tt-when', setupForm).hidden = kind === 'none'; $('#tt-try').hidden = kind === 'none';
+}
+setupForm.addEventListener('change', syncKind);
+for (const box of $$('.tt-chips', setupForm)) box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setupForm.elements[box.dataset.fill].value = b.textContent; });
+$('#tt-try').addEventListener('click', () => { sound.unlock(); readSetup(); hideNotif(); setTimeout(showNotif, 250); });
+setupForm.addEventListener('submit', (e) => { e.preventDefault(); sound.unlock(); readSetup(); hideNotif(); show('goal'); });
+
 let lastShop = -1;
 const pickBank = () => { let r = Math.random() * BANKS.reduce((t, b) => t + b.w, 0); return BANKS.find((b) => (r -= b.w) < 0) || BANKS[0]; };
-function payNotif() {
-  let i; do i = Math.floor(Math.random() * SHOPS.length); while (i === lastShop); lastShop = i;
-  const bank = pickBank(), amount = (Math.round((290 + Math.random() * 560) / 10) * 10).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + '\u00a0€';
-  const [l1, l2] = bank.lines(amount, SHOPS[i]);
+const euros = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0€';
+/** called at the three moments of the quiz; the notification only drops at the one chosen */
+function cue(moment) { if (cfg.kind !== 'none' && cfg.when === moment) { clearTimeout(notifTimer); notifTimer = setTimeout(showNotif, 1300); } }
+function showNotif() {
+  let icon, dark = false, title, l1, l2 = '';
+  if (cfg.kind === 'msg') {
+    icon = '/img/notif-messages.svg'; title = cfg.sender || 'Bébé ❤️'; l1 = cfg.text || 'Je te quitte.';
+  } else {
+    const bank = BANKS.find((b) => b.id === cfg.bank) || pickBank();
+    let name = cfg.from;
+    if (!name) { let i; do i = Math.floor(Math.random() * SHOPS.length); while (i === lastShop); lastShop = i; name = SHOPS[i]; }
+    const amount = Number(String(cfg.amount).replace(',', '.')) || Math.round((290 + Math.random() * 560) / 10) * 10;
+    icon = bank.icon; dark = !!bank.dark; title = bank.app;
+    [l1, l2] = bank.lines(euros(amount), name, cfg.ref || 'création site internet');
+  }
   let n = $('#tt-notif');
   if (!n) { n = el('div', { id: 'tt-notif', class: 'tt-notif', role: 'status' }); n.addEventListener('click', hideNotif); document.body.append(n); }
-  n.replaceChildren(el('span', { class: 'tt-notif-ic' + (bank.dark ? ' dark' : '') }, el('img', { src: bank.icon, alt: '' })),
-    el('div', { class: 'tt-notif-tx' }, el('p', { class: 'tt-notif-top' }, el('b', { text: bank.app }), el('small', { text: 'maintenant' })), el('p', { class: 'tt-notif-l1', text: l1 }), el('p', { class: 'tt-notif-l2', text: l2 })));
+  n.replaceChildren(el('span', { class: 'tt-notif-ic' + (dark ? ' dark' : '') + (cfg.kind === 'msg' ? ' full' : '') }, el('img', { src: icon, alt: '' })),
+    el('div', { class: 'tt-notif-tx' }, el('p', { class: 'tt-notif-top' }, el('b', { text: title }), el('small', { text: 'maintenant' })), el('p', { class: 'tt-notif-l1', text: l1 }), l2 ? el('p', { class: 'tt-notif-l2', text: l2 }) : null));
   void n.offsetWidth; n.classList.add('on'); sound.notif(); buzz([30, 60, 30]);
-  notifTimer = setTimeout(hideNotif, 7000);
+  clearTimeout(notifTimer); notifTimer = setTimeout(hideNotif, 7000);
 }
 function hideNotif() { clearTimeout(notifTimer); $('#tt-notif')?.classList.remove('on'); }
 
@@ -185,7 +222,7 @@ async function gate(user) {
   const ok = !!user?.email && ALLOWED.has(await sha(user.email.trim().toLowerCase()));
   $('#quiz').hidden = !ok; $('#tt-login').hidden = ok;
   if (user && !ok) $('#tt-login-msg').textContent = 'Ce compte n’a pas accès à cette page.';
-  if (ok) { drawGauge(); show('goal'); }
+  if (ok) { drawGauge(); fillSetup(); show('setup'); }
 }
 $('#tt-login').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -194,5 +231,5 @@ $('#tt-login').addEventListener('submit', async (e) => {
   if (error) $('#tt-login-msg').textContent = error;
 });
 const localPreview = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('preview'); // local tests only
-if (localPreview) { $('#quiz').hidden = false; drawGauge(); show('goal'); }
+if (localPreview) { $('#quiz').hidden = false; drawGauge(); fillSetup(); show('setup'); }
 else if (supa.enabled) supa.onAuth(({ user }) => gate(user)); else $('#tt-login-msg').textContent = 'Les comptes ne sont pas activés.';
