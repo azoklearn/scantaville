@@ -29,3 +29,5 @@ export function tick() {
 export function landed() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => blip(f, .5, .05, 'sine', i * .07)); }
 export function flip() { blip(320, .12, .05, 'triangle'); blip(1320, .25, .04, 'sine', .09); }
 export function built() { [783.99, 987.77, 1318.5].forEach((f, i) => blip(f, .35, .045, 'sine', i * .06)); }
+/** a phone notification "ding" */
+export function notif() { blip(1567.98, .22, .06, 'sine'); blip(2093, .4, .05, 'sine', .12); }

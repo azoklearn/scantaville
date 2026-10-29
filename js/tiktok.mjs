@@ -125,7 +125,9 @@ function fakeScan() {
 
 // ───────────────────────── a site being built (abstract blocks only) ─────────────────────────
 const BUILD = ['Récupération des coordonnées des commerces', 'Téléphones, adresses et horaires', 'Création de leur site', 'Mise en page et photos', 'Bouton d’appel', 'Préparation du message pour les contacter', 'Prêt à leur vendre'];
+let notifTimer = 0;
 function build() {
+  hideNotif();
   const list = $('#build-steps'), pct = $('#build-pct'), canvas = $('.tt-canvas');
   $('#build-h').textContent = 'On récupère leurs coordonnées et on crée leur site…'; $('#build-again').hidden = true;
   const found = Number(($('#scan-n').textContent || '0').replace(/\D/g, '')) || 120, contacts = $('#build-contacts');
@@ -147,10 +149,36 @@ function build() {
     list.children[BUILD.length - 1].classList.add('on'); canvas.classList.add('done');
     $('#build-h').textContent = 'Leurs sites sont prêts ✓'; contacts.textContent = `${fr(found)} commerces à contacter, leur site prêt à leur vendre`; sound.built(); buzz([12, 40, 20]);
     $('#build-again').hidden = false;
+    notifTimer = setTimeout(payNotif, 1300);
   };
   raf(tick);
 }
-$('#build-again').addEventListener('click', () => { $$('.picked').forEach((b) => b.classList.remove('picked')); $('#tt-city').reset(); show('goal'); });
+$('#build-again').addEventListener('click', () => { hideNotif(); $$('.picked').forEach((b) => b.classList.remove('picked')); $('#tt-city').reset(); show('goal'); });
+
+// ───────────────────────── a payment notification once the sites are ready (illustration for the videos) ─────────────────────────
+// A different shop, amount and bank each run. Revolut comes up most often (we have its logo).
+const SHOPS = ['Boulangerie Martin', 'Salon Léa Coiffure', 'Garage des Lilas', 'Pizzeria Bella Napoli', 'Fleurs de Camille', 'Boucherie Lefèvre', 'Institut Belle Peau',
+  'Le Petit Bistrot', 'Barber Shop Kenzo', 'Pressing du Centre', 'Tacos House', 'Auto-École Rivoli', 'Ongles by Inès', 'Cordonnerie Morel', 'Le Comptoir Thaï', 'Plomberie Garcia'];
+const BANKS = [
+  { w: 6, app: 'Revolut', icon: '/img/pay/revolut.svg', dark: true, lines: (a, n) => [`Vous avez reçu ${a} de ${n} 💸`, 'Réf. : création site internet'] },
+  { w: 2, app: 'PayPal', icon: '/img/pay/paypal.svg', lines: (a, n) => [`${n} vous a envoyé ${a}`, 'Note : site web'] },
+  { w: 1, app: 'Lydia', icon: '/img/pay/lydia.svg', lines: (a, n) => [`${n} vous a envoyé ${a}`, '« Pour le site internet »'] },
+  { w: 1, app: 'Ma Banque', icon: '/img/pay/bank.svg', lines: (a, n) => [`Virement reçu : +${a}`, `VIR SEPA ${n.toUpperCase()} · SITE WEB`] },
+];
+let lastShop = -1;
+const pickBank = () => { let r = Math.random() * BANKS.reduce((t, b) => t + b.w, 0); return BANKS.find((b) => (r -= b.w) < 0) || BANKS[0]; };
+function payNotif() {
+  let i; do i = Math.floor(Math.random() * SHOPS.length); while (i === lastShop); lastShop = i;
+  const bank = pickBank(), amount = (Math.round((290 + Math.random() * 560) / 10) * 10).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + '\u00a0€';
+  const [l1, l2] = bank.lines(amount, SHOPS[i]);
+  let n = $('#tt-notif');
+  if (!n) { n = el('div', { id: 'tt-notif', class: 'tt-notif', role: 'status' }); n.addEventListener('click', hideNotif); document.body.append(n); }
+  n.replaceChildren(el('span', { class: 'tt-notif-ic' + (bank.dark ? ' dark' : '') }, el('img', { src: bank.icon, alt: '' })),
+    el('div', { class: 'tt-notif-tx' }, el('p', { class: 'tt-notif-top' }, el('b', { text: bank.app }), el('small', { text: 'maintenant' })), el('p', { class: 'tt-notif-l1', text: l1 }), el('p', { class: 'tt-notif-l2', text: l2 })));
+  void n.offsetWidth; n.classList.add('on'); sound.notif(); buzz([30, 60, 30]);
+  notifTimer = setTimeout(hideNotif, 7000);
+}
+function hideNotif() { clearTimeout(notifTimer); $('#tt-notif')?.classList.remove('on'); }
 
 // ───────────────────────── access ─────────────────────────
 async function gate(user) {
