@@ -158,7 +158,7 @@ $('#build-again').addEventListener('click', () => { hideNotif(); $$('.picked').f
 // ───────────────────────── a payment notification once the sites are ready (illustration for the videos) ─────────────────────────
 // A different shop, amount and bank each run. Revolut comes up most often (we have its logo).
 const SHOPS = ['Boulangerie Martin', 'Salon Léa Coiffure', 'Garage des Lilas', 'Pizzeria Bella Napoli', 'Fleurs de Camille', 'Boucherie Lefèvre', 'Institut Belle Peau',
-  'Le Petit Bistrot', 'Barber Shop Kenzo', 'Pressing du Centre', 'Tacos House', 'Auto-École Rivoli', 'Ongles by Inès', 'Cordonnerie Morel', 'Le Comptoir Thaï', 'Plomberie Garcia'];
+  'Le Petit Bistrot', 'Barber Shop Kenzo', 'Pressing du Centre', 'Tacos House', 'Auto-École Rivoli', 'Ongles by Inès', 'Cordonnerie Morel', 'Le Comptoir Thaï', 'Plomberie Garcia', 'Pizza Nizar'];
 const BANKS = [
   { w: 6, app: 'Revolut', icon: '/img/pay/revolut.svg', dark: true, lines: (a, n) => [`Vous avez reçu ${a} de ${n} 💸`, 'Réf. : création site internet'] },
   { w: 2, app: 'PayPal', icon: '/img/pay/paypal.svg', lines: (a, n) => [`${n} vous a envoyé ${a}`, 'Note : site web'] },
