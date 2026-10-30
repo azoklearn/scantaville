@@ -607,14 +607,14 @@ function rainCoins(n) {
 // the goal gauge: drag, the amount and the number of sites follow, a tick sounds every 500 EUR
 let lastGaugeStep = -1;
 function drawGauge() {
-  const r = $('#goal-gauge'), v = Number(r.value), pct = ((v - r.min) / (r.max - r.min)) * 100;
+  const r = $('#goal-gauge'), v = Number(r.value), pct = Math.sqrt((v - r.min) / (r.max - r.min)) * 100; // curved scale: the usual goals keep room under the finger
   const vb = $('#goal-val'); vb.textContent = fr(v) + ' €'; vb.classList.add('pop'); setTimeout(() => vb.classList.remove('pop'), 120);
   $('#gauge-fill').style.width = pct + '%';
   $('#gauge-thumb').style.left = pct + '%';
   $('.gauge').style.setProperty('--heat', String(pct / 100));
   const sites = Math.max(1, Math.ceil(v / SITE_PRICE)), tag = v <= 1500 ? 'réaliste' : v <= 5000 ? 'accessible' : 'ambitieux';
   const t = $('#goal-tag'); if (t.textContent !== tag) { t.textContent = tag; t.dataset.tag = tag; }
-  $('#goal-why').textContent = `À ${fr(SITE_PRICE)} € le site, ça fait ${sites} site${sites > 1 ? 's' : ''} à vendre par mois.` + (v > 5000 ? ' Atteignable en visant des sites plus complets, vendus plus cher.' : '');
+  $('#goal-why').textContent = `À ${fr(SITE_PRICE)} € le site, ça fait ${sites} site${sites > 1 ? 's' : ''} à vendre par mois.` + (v > 10000 ? ' Là, il faut vendre des sites plus complets, plus chers, et se faire aider.' : v > 5000 ? ' Atteignable en visant des sites plus complets, vendus plus cher.' : '');
   const stepN = Math.floor(v / 500); if (stepN !== lastGaugeStep) { lastGaugeStep = stepN; sound.tick(); buzz(6); }
   quiz.goal = v;
 }
@@ -624,7 +624,7 @@ function drawGauge() {
   const setFromX = (x) => {
     const rect = track.getBoundingClientRect(), k = Math.min(1, Math.max(0, (x - rect.left) / rect.width));
     const min = +range.min, max = +range.max, step = +range.step;
-    range.value = String(Math.round((min + k * (max - min)) / step) * step); drawGauge();
+    range.value = String(Math.round((min + k * k * (max - min)) / step) * step); drawGauge();
   };
   let dragging = false;
   track.addEventListener('pointerdown', (e) => { e.preventDefault(); sound.unlock(); try { track.setPointerCapture(e.pointerId); } catch { /* synthetic event */ } dragging = true; track.classList.add('drag'); setFromX(e.clientX); });
@@ -1275,11 +1275,16 @@ function loadWhop() {
   }).catch((e) => { whopLoading = null; throw e; });
   return whopLoading;
 }
+// iOS zooms into any field under 16px when it gets focus: Whop's are 14px, and the zoom throws the checkout off screen
+const WHOP_APPEARANCE = { classes: Object.fromEntries(['EmailInput', 'CardFieldInput', 'AddressFieldInput', 'AddressFieldSelect', 'AddressSearchInput', 'PaymentFieldInput', 'CheckoutPromoInput'].map((c) => [`whop-${c}`, { fontSize: '16px' }])) };
+const viewport = $('meta[name=viewport]'), VIEWPORT = viewport.content;
 function setPayMode(mode) {
+  viewport.content = mode === 'checkout' ? `${VIEWPORT}, maximum-scale=1` : VIEWPORT; // same reason: covers the card fields if they ignore the appearance
   $('#paywall .paycard').dataset.mode = mode;
   $('#pay-choose').hidden = mode !== 'choose'; $('#pay-checkout').hidden = mode !== 'checkout'; $('#pay-done').hidden = mode !== 'done';
-  $('#paywall .paycard').scrollTop = 0;
+  $('#paywall .paycard').scrollTop = 0; if (mode === 'checkout') scrollTo(0, 0);
 }
+$('#paywall').addEventListener('click', (e) => { if (e.target.closest('[data-close]')) setPayMode('choose'); });
 async function openCheckout(chosen) {
   const planId = whopPlanOf(chosen);
   if (!planId) { location.href = chosen.checkoutUrl; return; }
@@ -1295,7 +1300,7 @@ async function openCheckout(chosen) {
   if (state.user?.id) metadata.scantaville_user = state.user.id; // the webhook gives the plan to THIS account, whatever e-mail is typed
   try {
     whopCheckout = window.WhopElements().checkout.create({
-      plan: planId, metadata, locale: 'fr',
+      plan: planId, metadata, locale: 'fr', appearance: WHOP_APPEARANCE,
       returnUrl: `${location.origin}/?paid=1`,
       onComplete: (c) => { if (!c || c.result === 'payment') paymentDone(chosen); },
     });

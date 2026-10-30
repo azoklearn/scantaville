@@ -58,7 +58,7 @@ for (const b of $$('[data-next]')) b.addEventListener('click', () => { sound.unl
 // ───────────────────────── goal gauge (drag anywhere on the track) ─────────────────────────
 let lastStep = -1, goalCued = false;
 function drawGauge() {
-  const r = $('#goal-gauge'), v = Number(r.value), pct = ((v - r.min) / (r.max - r.min)) * 100;
+  const r = $('#goal-gauge'), v = Number(r.value), pct = Math.sqrt((v - r.min) / (r.max - r.min)) * 100; // curved scale: the usual goals keep room under the finger
   $('#goal-val').textContent = fr(v) + ' €';
   $('#gauge-fill').style.width = pct + '%'; $('#gauge-thumb').style.left = pct + '%';
   $('.gauge').style.setProperty('--heat', String(pct / 100));
@@ -67,7 +67,7 @@ function drawGauge() {
 }
 {
   const track = $('#gauge-track'), range = $('#goal-gauge');
-  const setX = (x) => { const rc = track.getBoundingClientRect(), k = Math.min(1, Math.max(0, (x - rc.left) / rc.width)); range.value = String(Math.round((+range.min + k * (range.max - range.min)) / 100) * 100); drawGauge(); };
+  const setX = (x) => { const rc = track.getBoundingClientRect(), k = Math.min(1, Math.max(0, (x - rc.left) / rc.width)); range.value = String(Math.round((+range.min + k * k * (range.max - range.min)) / 100) * 100); drawGauge(); };
   let drag = false;
   track.addEventListener('pointerdown', (e) => { e.preventDefault(); sound.unlock(); try { track.setPointerCapture(e.pointerId); } catch { /* synthetic */ } drag = true; track.classList.add('drag'); setX(e.clientX); });
   track.addEventListener('pointermove', (e) => { if (drag) setX(e.clientX); });

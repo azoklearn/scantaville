@@ -1205,5 +1205,13 @@ body[data-state="landing"] .overlay, body[data-state="landing"] #suggest { color
 .pay-fine { margin: 8px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .pay-inapp { margin: 0 0 12px; padding: 11px 14px; border-radius: 14px; background: #fff7e6; border: 1px solid #f5d48a; color: #6b4a00; font-size: 13.5px; line-height: 1.5; }
 #pay-checkout .pay-trust { margin: 14px 0 4px; }
+/* phones: during checkout the page itself scrolls, not a fixed box. The iOS keyboard pushes a fixed box around when the focused field is in Whop's frame.
+   Named blocks only: Whop adds its own 3-D Secure and wallet layers to <body>. */
+@media (max-width: 640px), (pointer: coarse) {
+  body:has(#paywall:not([hidden]) .paycard[data-mode="checkout"]) { height: auto; overflow: visible; }
+  body:has(#paywall:not([hidden]) .paycard[data-mode="checkout"]) > :is(.top, .only-landing, .only-scan, #gate-btn, #scanmsg, #quiz) { display: none; }
+  #paywall:not([hidden]):has(.paycard[data-mode="checkout"]) { position: relative; inset: auto; display: block; }
+  #paywall .paycard[data-mode="checkout"] { height: auto; min-height: 100dvh; overflow: visible; }
+}
 @media (min-width: 641px) { .pay-sticky { bottom: calc(-28px - var(--safe-b)); margin-bottom: calc(-28px - var(--safe-b)); padding-bottom: calc(22px + var(--safe-b)); } }
 #paywall .paycard > .x { background: rgba(255,255,255,.92); box-shadow: 0 4px 14px -6px rgba(11,27,63,.35); }
