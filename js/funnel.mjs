@@ -1,6 +1,6 @@
 // The quiz, screen by screen, in order. Rendered by js/app.mjs (renderFunnel / go).
 // Types: single (one answer, auto-advance) · multi (several, then Continue) · scale · info (text + button)
-//        text (free answer, skippable) · goal / analyze (built in index.html) · potential · email · beforeafter · plannow · final
+//        text (free answer, skippable) · goal / analyze (built in index.html) · potential · email · beforeafter · plannow · pledge · final
 // `other: true` adds "Ma réponse n'est pas dans la liste / Écris-la toi-même".
 // Numbers shown here are real: shops stored in the database (cities scanned so far), real prices.
 
@@ -83,6 +83,7 @@ export const FUNNEL = [
     ph: 'Ex : je veux 2 000 € par mois en vendant des sites, pour ne plus dépendre de mon employeur.' },
   { id: 'cap', type: 'info', kicker: 'Ton cap', title: 'C’est tout à fait réaliste.', body: 'Même en partant de zéro. On va le faire avec toi, étape par étape.', cta: 'Continuer' },
   { id: 'now', type: 'plannow', kicker: 'Ce qu’on fait maintenant' },
+  { id: 'pledge', type: 'pledge', kicker: 'Ton engagement' },
   { id: 'final', type: 'final', kicker: 'Ce qui te sépare de tout ça' },
 ];
 

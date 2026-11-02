@@ -654,6 +654,7 @@ function go(id, push = true) {
   if (d.type === 'analyze') { syncQuizFromAnswers(); analyze(null, () => go(nextOf('analyze'))); }
   else if (d.type === 'potential') renderPotential();
   else if (d.type === 'plannow') renderPlanNow();
+  else if (d.type === 'pledge') renderPledge();
   track('quiz_step', { step: id });
   logFunnel(id);
 }
@@ -748,6 +749,13 @@ function renderFunnel() {
           el('li', {}, el('b', { text: 'On génère leur site à ta place' }), el('span', { text: 'Une maquette à leur nom en une seconde, prête à montrer et à mettre en ligne.' })),
           el('li', {}, el('b', { text: 'On te guide jusqu’à ta première vente' }), el('span', { text: 'Quoi dire, quoi envoyer, quoi faire chaque jour dans « Mon plan ». Aucune expérience nécessaire.' }))),
         el('button', { class: 'cta f-go', type: 'button', onclick: next }, 'Continuer →'));
+    } else if (d.type === 'pledge') {
+      const ring = el('i', { class: 'pl-ring' }), btn = el('button', { class: 'pl-btn', type: 'button', id: 'pl-btn', 'aria-label': 'Reste appuyé pour signer ton engagement' },
+        ring, printIcon(), el('span', { class: 'pl-ok', text: '✓' }));
+      sec.append(el('h2', { class: 'quiz-h f-title', id: 'pl-h' }),
+        el('div', { class: 'pl-card' }, el('ul', { class: 'pl-list', id: 'pl-list' }), el('p', { class: 'pl-sign', id: 'pl-sign' })),
+        btn, el('p', { class: 'pl-hint', id: 'pl-hint', text: 'Reste appuyé pour signer' }));
+      holdToSign(btn, ring);
     } else if (d.type === 'final') {
       sec.append(el('h2', { class: 'quiz-h f-title', text: 'Tout le monde peut se lancer. Il te faut juste une méthode, et on te la donne.' }),
         el('p', { class: 'f-body', text: 'Pas d’expérience, pas de diplôme, pas besoin de savoir coder ni de vendre. On te guide étape par étape.' }),
@@ -757,6 +765,62 @@ function renderFunnel() {
   }
 }
 renderFunnel();
+
+// ───────────────────────── "je m'engage": hold the fingerprint to sign ─────────────────────────
+function printIcon() {
+  const s = el('span', { class: 'pl-print', 'aria-hidden': 'true' });
+  s.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>';
+  return s;
+}
+function renderPledge() {
+  const name = store.getAuthor(), goal = quiz.goal || 1000;
+  const perWeek = Math.max(1, Math.ceil((Math.max(1, Math.ceil(goal / SITE_PRICE)) * CONTACTS_PER_SALE) / 4));
+  $('#pl-h').textContent = `${name ? `Moi, ${name}, j` : 'J'}e m’engage à me donner à fond pour générer mes premiers revenus.`;
+  $('#pl-list').replaceChildren(...[
+    `Je contacte ${perWeek} commerce${perWeek > 1 ? 's' : ''} par semaine, même quand je n’ai pas envie.`,
+    'Je suis « Mon plan » chaque jour, une étape après l’autre.',
+    'Un « non » ne m’arrête pas : je passe au commerce suivant.',
+    `Je vise ${fr(goal)} € par mois, et je ne lâche pas avant ma première vente.`,
+  ].map((t) => el('li', { text: t })));
+  $('#pl-sign').textContent = `Signé le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  $('#pl-btn').classList.remove('done', 'hold'); $('#pl-btn').reset(); $('#pl-hint').textContent = 'Reste appuyé pour signer';
+  $('.quiz-step[data-step="pledge"]').classList.remove('signed');
+}
+function holdToSign(btn, ring) {
+  const DUR = 1600;
+  let t0 = 0, raf = 0, lastTick = -1, k = 0, after = 0;
+  const paint = () => ring.style.setProperty('--k', k.toFixed(3));
+  const frame = (now) => {
+    k = Math.min(1, (now - t0) / DUR); paint();
+    const step = Math.floor(k * 8); if (step !== lastTick) { lastTick = step; sound.tick(); buzz(8); }
+    if (k < 1) { raf = requestAnimationFrame(frame); return; }
+    btn.classList.remove('hold'); btn.classList.add('done');
+    btn.closest('.quiz-step').classList.add('signed');
+    $('#pl-hint').textContent = 'Engagement signé ✓';
+    sound.landed(); buzz([20, 60, 40]); fstate.answers.pledge = 'signed'; track('quiz_answer', { q: 'pledge', a: 'signed' });
+    after = setTimeout(next, 1300);
+  };
+  const start = (e) => {
+    if (btn.classList.contains('done')) { clearTimeout(after); next(); return; } // already signed (back from the next screen): a tap goes on
+    if (btn.classList.contains('hold')) return;
+    e.preventDefault(); sound.unlock();
+    if (e.pointerId != null) try { btn.setPointerCapture(e.pointerId); } catch { /* synthetic event */ }
+    btn.classList.add('hold'); $('#pl-hint').textContent = 'Continue…'; t0 = performance.now() - k * DUR; lastTick = -1; raf = requestAnimationFrame(frame);
+  };
+  const stop = () => {
+    if (!btn.classList.contains('hold')) return;
+    cancelAnimationFrame(raf); btn.classList.remove('hold'); $('#pl-hint').textContent = 'Reste appuyé jusqu’au bout';
+    const from = k, t1 = performance.now(); // let go too early: the ring winds back
+    const back = (now) => { if (btn.classList.contains('hold')) return; k = Math.max(0, from - (now - t1) / 400); paint(); if (k > 0) requestAnimationFrame(back); };
+    requestAnimationFrame(back);
+  };
+  btn.reset = () => { clearTimeout(after); cancelAnimationFrame(raf); k = 0; paint(); }; // new quiz run
+  btn.addEventListener('pointerdown', start);
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btn.addEventListener(ev, stop);
+  btn.addEventListener('contextmenu', (e) => e.preventDefault()); // long press would open the menu on phones
+  btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
+  btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') stop(); });
+}
 
 function renderPotential() {
   const g = quiz.goal || 1000, low = Math.round((g * 0.87) / 100) * 100, high = Math.round((g * 1.13) / 100) * 100, sites = Math.max(1, Math.ceil(g / SITE_PRICE));
