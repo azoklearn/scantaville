@@ -7,6 +7,7 @@ const ALLOWED = new Set([
   '8ef74dcccefe8552742fa26186b28178bac5eced74c02735af0f1acba956ee41',
   'd5b5b994b4d7c58f9294de969d294ce5081b66fcfba0bcbc99be1a4ca0e93a17',
   'df366534c34cdf31e66f86cfae5e17550d382a806c092d22992393773bc49dce',
+  '182479c5deac0b845fbeb8dfaa613ccdcc4b061a498180f99fce0f4f90c99e0a',
 ]);
 const STEPS = ['goal', 'payout', 'first', 'contact', 'done4you', 'potential', 'city', 'scan', 'build'];
 const KICKER = { setup: 'Avant de filmer', goal: 'Ton objectif', payout: 'Ton argent', first: 'Ton horloge', contact: 'Ta méthode', done4you: 'Tes sites', potential: 'Ton potentiel', city: 'Ta ville', scan: 'Scan de ta ville', build: 'Leur site' };
